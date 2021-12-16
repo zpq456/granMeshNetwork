@@ -13,26 +13,28 @@ granEEPROM_esp32();
 
 //************** M1 구조체 변수 **************
 struct PARAM_{
-    char SerialNumber[6];  //6 보드 고유번호
-    char WifiSSID[16];     //16 Wifi ssid 
-    char WifiPWD[16];      //16 Wifi pw
-    char DBTable[16];    //16 IP주소
-    char DelayTime[4];        // 딜레이 시간
+    char SerialNumber[6];	//보드 고유번호 == 노드 이름(NodeName)
+    char WifiSSID[16]; 		//Wifi ssid
+    char WifiPWD[16];   	//Wifi pw
+    char DBTable[12];       //DB테이블 이름 == 메쉬 이름(MeshID)
+    char DelayTime[4];  	//딜레이 시간
+    char ToNodeName[6];	    //연결될 노드 이름
 } M1 ;
 //*******************************************
-
 
 void setSerialNumber(char* data);
 void setWifiSSID(char* data);
 void setWifiPWD(char* data);
 void setDBTable(char* data);
 void setDelayTime(char* data);
+void setToNodeName(char* data);
 
 char* getSerialNumber();
 char* getWifiSSID();
 char* getWifiPWD();
 char* getDBTable();
 char* getDelayTime();
+char* getToNodeName();
 
 void setDefaultValue();
 void printStruct();

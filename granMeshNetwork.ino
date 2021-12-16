@@ -1,33 +1,10 @@
 
 
-/* granWifi v0.0.0
-   - 특정 와이파이에 접속가능
-   - mysql기반의 DB와 연동하여 데이터를 테이블에 삽입 가능
-   - 온도센서를 사용하여 온도값 수집 가능
-   - I2C 모듈 설치완료
-   - EEPROM을 사용하여 사용자 설정값을 저장&불러오기
+/* granMeshNetwork
+    - granWifi를 베이스로 ESP32 Mesh Network (painlessMesh)를 사용
+    - 각 센서부의 데이터를 수집 (Mesh) 하고 외부 DB에 저장 (Wifi) 하기위한 개발
 
-   210907 granWifi v0.0.1
-   - DB서버에 접근해서 SELECT TABLE수행 => 추후에 JSON방식을 도입할것
-   [ 최근 데이터부터 10개까지 가져와서 Serial에 출력 ]
-
-   210908 granWifi v0.0.2
-   - Serial2를 통해 USE모듈의 저장소에 데이터를 텍스트화 하여 저장
-   - RTC 모듈로 현재 시간을 불러올 수 있음
-
-   210908 granWifi v0.0.3
-   - softwareSerial을 통해 485통신으로 센서값을 받아옴
-   - 받아온 통신값(hex)를 float값으로 변경
-   - RTC값을 지정할 수 있게 Serial 명령어로 추가.
-   - USB에 Write할 시간을 EEPROM에 저장하여 관리
-   - USB에 Write할 시간을 정할 수 있게 Serial 명령어로 추가.
-
-   2100930 granWifi v0.0.4
-   - DB서버의 SELECT TABLE 데이터를 JSON방식으로 받아옴 (sensor master table)
-   - 센서 세팅값을 DB에 추가.
-   - 새로운 장비가 추가되면 DB에 해당 장비의 serial 데이터를 기본키로 새로운 데이터를 추가
-   - EEPROM과 DB에 센서 세팅값을 저장하여 운용 
-   [ DB에 데이터 저장 (DB) / USB에 데이터 저장 (EEPROM)]
+    211216 granWifi에 painlessMesh의 namedMesh를 적용
 
 */
 
@@ -47,6 +24,7 @@
 
 #define DBSWITCH   23    // 구 LEVEL
 #define TACTBTN    34    //TactButton for setting EEPROM (devMode)
+#define TEMP_SENSOR   36
 
 #define P_PUMP    0
 #define P_FAN     1
@@ -59,14 +37,14 @@
 granlib _granlib;
 
 
-//********************** comm 관련 변수&함수 **************************
+//********************** comm **************************
 char serialBuf[21]; // serial로 들어오는 데이타 저장을 위한 임시버퍼.
 char *granlibBuf;   // granlib의 EEPROM 데이타 저장을 위한 임시버퍼.
 int devMode = 0;    // EEPROM data 설정 모드
 int devModeMSG = 0; // EEPROM data 설정 모드 안내문구 트리거
 void readSerial();
 
-//********************* Sensor 관련 변수&함수 *************************
+//********************* Sensor *************************
 float temp_value, temp_value_org;
 float salt_value, salt_value_org;
 
@@ -102,14 +80,14 @@ void getSensorFromDB() {
 
 //USB 저장 모드일 때 EEPROM에서 센서 세팅값 가져오기
 void getSensorFromEEPROM() {
-  
+
 }
 
-//********************** Timer 관련 변수&함수 *************************
+//********************** Timer *************************
 unsigned long dbStartTime;  //DB 작업 시작시간
 unsigned long dbEndTime;    //DB 작업 끝시간
 
-//********************** WiFi 관련 변수&함수 **************************
+//********************** WiFi **************************
 #define ENABLE_SUJO_SELECT 0  //[ 1: sujo01 DB테이블 불러오기 사용 / 0: 미사용 ] 
 #define ENABLE_SENSOR_SETTING_SELECT 1 // [ 1: 센서 세팅값 DB에 저장 사용 / 0: 미사용 ]
 WiFiServer server(80);
@@ -120,10 +98,10 @@ Ch376msc flashDrive(Serial2, 9600);
 int createLogFlag = 0;
 char adatBuffer[255];// max length 255 = 254 char + 1 NULL character
 
-//*********************** RTC 관련 변수&함수 ***************************
+//*********************** RTC ***************************
 RTC_DS1307 rtc;
 
-//****************** softwareSerial 관련 변수&함수 **********************
+//****************** softwareSerial **********************
 #define MYPORT_TX 25
 #define MYPORT_RX 26
 #define DE 12
@@ -131,12 +109,75 @@ SoftwareSerial myPort;
 byte softSerialBuf[13] = {0,};
 int softSerialBufNum = 0;
 
+//****************** mesh network *************************
+#include "src/namedMesh.h"
+#include <Arduino_JSON.h>
+
+//#define   MESH_SSID     "whateverYouLike"
+#define   MESH_PASSWORD   "somethingSneaky"
+#define   MESH_PORT       5555
+
+Scheduler  userScheduler; // to control your personal task
+namedMesh  mesh;
+
+String MESH_SSID;
+//String MESH_PASSWORD;
+//int MESH_PORT;
+String nodeName; // Name needs to be unique
+String toNode;
+
+int Node = 1;
+int Value = 0;
+String sensor_readings;
+String Msg;
+
+
+String obtain_readings () {
+  JSONVar jsonReadings;
+  jsonReadings["Node"] = Node;
+  jsonReadings["Value"] = Value;
+  sensor_readings = JSON.stringify(jsonReadings);
+  return sensor_readings;
+}
+
+Task taskSendMessage( TASK_SECOND * 10, TASK_FOREVER, []() {
+  //  String msg = obtain_readings();
+  //  String to = "node1";
+  Msg = obtain_readings();
+  mesh.sendSingle(toNode, Msg);
+  //mesh.sendBroadcast(msg);
+}); // start with a one second interval
+
+//mesh callback
+void receivedCallback( uint32_t from, String &msg ) {
+  Serial.printf("Received from %u msg=%s\n", from, msg.c_str());
+  JSONVar json_object = JSON.parse(msg.c_str());
+  int node = json_object["Node"];
+  double temp = json_object["Value"];
+  Serial.print("Node: ");
+  Serial.println(node);
+  Serial.print("Temperature: ");
+  Serial.println(temp);
+}
+
+void newConnectionCallback(uint32_t nodeId) {
+  Serial.printf("New Connection, nodeId = %u\n", nodeId);
+}
+void changedConnectionCallback() {
+  Serial.printf("Changed connections\n");
+}
+void nodeTimeAdjustedCallback(int32_t offset) {
+  Serial.printf("Adjusted time %u. Offset = %d\n", mesh.getNodeTime(), offset);
+}
+
+
 void setup()
 {
   Serial.begin(115200);
   delay(1000);
   pinMode(TACTBTN, INPUT_PULLUP);      //  BOOT MODE SELECT BUTTON
   pinMode(DBSWITCH, INPUT_PULLUP);     //Send Sensor Data Button
+  pinMode(TEMP_SENSOR, INPUT_PULLUP);      //  Temp Sensor
   pinMode(P_PUMP, OUTPUT);             //Send Sensor Data Button LED
   digitalWrite(P_PUMP, LOW);  // LED Off
   delay(1000);
@@ -190,8 +231,8 @@ void setup()
   //WiFi 연결 확인 (10초동안 응답이 없으면 EEPROM 설정으로 넘어감
   int wifiCounter = 0;
   while (WiFi.status() != WL_CONNECTED) {
-    Serial.print("WIFI RSSI : ");
-    Serial.println(WiFi.RSSI());
+    //    Serial.print("WIFI RSSI : ");
+    //    Serial.println(WiFi.RSSI());
     delay(10);
     wifiCounter++;
     if (wifiCounter > 6000) { // wait 60s for wifi connect
@@ -224,6 +265,34 @@ void setup()
   dbStartTime = millis();
   dbEndTime = millis();
 
+  //*********************** mesh network ***************************88
+  mesh.setDebugMsgTypes(ERROR | DEBUG | CONNECTION);  // set before init() so that you can see startup messages
+
+  //get Data from eeprom
+  MESH_SSID = _granlib._EEPROM.getDBTable();
+//  MESH_PASSWORD = _granlib._EEPROM.getMeshPW();
+//  MESH_PORT = _granlib._CONVERT.CharArrayToInt(_granlib._EEPROM.getMeshPORT());
+  nodeName = _granlib._EEPROM.getSerialNumber(); // Name needs to be unique
+  toNode = _granlib._EEPROM.getToNodeName();
+
+  //  nodeName = "NS001"; // Name needs to be unique
+  //  toNode = "MA001";
+  //  nodeName = "MA001"; // Name needs to be unique
+  //  toNode = "NS001";
+
+  mesh.init(MESH_SSID, MESH_PASSWORD, &userScheduler, MESH_PORT);
+  mesh.setName(nodeName); // This needs to be an unique name!
+  mesh.onChangedConnections([]() {
+    Serial.printf("Changed connection\n");
+  });
+
+  mesh.onReceive(&receivedCallback);
+  mesh.onNewConnection(&newConnectionCallback);
+  mesh.onChangedConnections(&changedConnectionCallback);
+  mesh.onNodeTimeAdjusted(&nodeTimeAdjustedCallback);
+
+  userScheduler.addTask(taskSendMessage);
+  taskSendMessage.enable();
 }
 
 void loop() {
@@ -256,7 +325,7 @@ void loop() {
 
   //Develop Mode Start Check
   if (!(digitalRead(TACTBTN))) {
-    devMode = 1;
+    //devMode = 1;
     //Serial.println("Develop Mode Start...");
   }
 
@@ -267,4 +336,10 @@ void loop() {
     dbStartTime = millis();
     dbEndTime = millis();
   }
+
+  //************************Mesh Network***************************
+  //mesh sensor check
+  Value = analogRead(TEMP_SENSOR);
+
+  mesh.update();
 }

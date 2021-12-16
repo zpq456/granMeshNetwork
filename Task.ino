@@ -14,8 +14,8 @@ void readIO()
   if ((dbEndTime - dbStartTime) >= _granlib._DB.getSensorDelaytime() * 1000 &&
       !digitalRead(DBSWITCH)) {
 
-    Serial.print("WIFI RSSI : ");
-    Serial.println(WiFi.RSSI());
+//    Serial.print("WIFI RSSI : ");
+//    Serial.println(WiFi.RSSI());
 
     //get RTC data
     String RTCtime = getRTCTime(rtc);

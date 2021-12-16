@@ -23,11 +23,15 @@ void granEEPROM_esp32::setWifiPWD(char *data)
 }
 void granEEPROM_esp32::setDBTable(char *data)
 {
-    setCharArrayData(M1.DBTable, data, 16);
+    setCharArrayData(M1.DBTable, data, 12);
 }
 void granEEPROM_esp32::setDelayTime(char * data)
 {
     setCharArrayData(M1.DelayTime, data, 4);
+}
+void granEEPROM_esp32::setToNodeName(char * data)
+{
+    setCharArrayData(M1.ToNodeName, data, 6);
 }
 
 char *granEEPROM_esp32::getSerialNumber() { return &M1.SerialNumber[0]; }
@@ -35,11 +39,12 @@ char *granEEPROM_esp32::getWifiSSID() { return &M1.WifiSSID[0]; }
 char *granEEPROM_esp32::getWifiPWD() { return &M1.WifiPWD[0]; }
 char *granEEPROM_esp32::getDBTable() { return &M1.DBTable[0]; }
 char *granEEPROM_esp32::getDelayTime() { return &M1.DelayTime[0]; }
+char *granEEPROM_esp32::getToNodeName() { return &M1.ToNodeName[0]; }
 
 void granEEPROM_esp32::setDefaultValue()
 {
-    //AA001
-    M1.SerialNumber[0] = 'A';
+    //MA001
+    M1.SerialNumber[0] = 'M';
     M1.SerialNumber[1] = 'A';
     M1.SerialNumber[2] = '0';
     M1.SerialNumber[3] = '0';
@@ -82,6 +87,14 @@ void granEEPROM_esp32::setDefaultValue()
     M1.DelayTime[1] = '6';
     M1.DelayTime[2] = '0';
     M1.DelayTime[3] = '\0';
+
+    //SA001
+    M1.ToNodeName[0] = 'S';
+    M1.ToNodeName[1] = 'A';
+    M1.ToNodeName[2] = '0';
+    M1.ToNodeName[3] = '0';
+    M1.ToNodeName[4] = '1';
+    M1.ToNodeName[5] = '\0';
 }
 
 void granEEPROM_esp32::printStruct()
@@ -93,9 +106,11 @@ void granEEPROM_esp32::printStruct()
     Serial.print("Wifi Passward(P)   : ");
     printCharArray(M1.WifiPWD, 15);
     Serial.print("Wifi DB Table Name(D) : ");
-    printCharArray(M1.DBTable, 15);
+    printCharArray(M1.DBTable, 12);
     Serial.print("Delay Time(T) [001~999 sec] : ");
     printCharArray(M1.DelayTime, 4);
+    Serial.print("To NodeName(N) : ");
+    printCharArray(M1.ToNodeName, 6);
     Serial.println("");
 }
 
@@ -137,20 +152,21 @@ void granEEPROM_esp32::EEPROM_read_All()
     M1.DBTable[3] = EEPROM.read(i++);M1.DBTable[4] = EEPROM.read(i++);M1.DBTable[5] = EEPROM.read(i++);
     M1.DBTable[6] = EEPROM.read(i++);M1.DBTable[7] = EEPROM.read(i++);M1.DBTable[8] = EEPROM.read(i++);
     M1.DBTable[9] = EEPROM.read(i++);M1.DBTable[10] = EEPROM.read(i++);M1.DBTable[11] = EEPROM.read(i++);
-    M1.DBTable[12] = EEPROM.read(i++);M1.DBTable[13] = EEPROM.read(i++);M1.DBTable[14] = EEPROM.read(i++);
-    M1.DBTable[15] = EEPROM.read(i++);
 
     M1.DelayTime[0] = EEPROM.read(i++);M1.DelayTime[1] = EEPROM.read(i++);
     M1.DelayTime[2] = EEPROM.read(i++);M1.DelayTime[3] = EEPROM.read(i++);
 
+    M1.ToNodeName[0] = EEPROM.read(i++);M1.ToNodeName[1] = EEPROM.read(i++);M1.ToNodeName[2] = EEPROM.read(i++);
+    M1.ToNodeName[3] = EEPROM.read(i++);M1.ToNodeName[4] = EEPROM.read(i++);M1.ToNodeName[5] = EEPROM.read(i++);
 }
 
 void granEEPROM_esp32::EEPROM_write_All(){
     EEPROM_write(&M1.SerialNumber[0], 0, 6);
     EEPROM_write(&M1.WifiSSID[0], 6, 16);
     EEPROM_write(&M1.WifiPWD[0], 22, 16);
-    EEPROM_write(&M1.DBTable[0], 38, 16);
-    EEPROM_write(&M1.DelayTime[0], 54, 4);
+    EEPROM_write(&M1.DBTable[0], 38, 12);
+    EEPROM_write(&M1.DelayTime[0], 50, 4);
+    EEPROM_write(&M1.ToNodeName[0], 54, 6);
 }
 
 //주소명, 시작바이트, 데이터사이즈

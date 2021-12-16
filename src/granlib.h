@@ -5,6 +5,8 @@
 
 #include <Arduino.h>
 #include <String.h>
+#include <painlessMesh.h>
+#include <Arduino_JSON.h>
 #include "granDB.h"
 #include "granEEPROM_esp32.h"
 #include "granConvert.h"
