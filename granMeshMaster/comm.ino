@@ -26,10 +26,6 @@ void readSerial() {
       _granlib._EEPROM.setDelayTime(&serialBuf[1]);
       Serial.print("Delay Time(T) [001~999 sec] : "); printCharArray(_granlib._EEPROM.getDelayTime(), 4);
       break;
-    case 'N': //ToNodeName 설정
-      _granlib._EEPROM.setToNodeName(&serialBuf[1]);
-      Serial.print("To NodeName(N) : "); printCharArray(_granlib._EEPROM.getToNodeName(), 6);
-      break;
     case '*': // Restore default value
       temp  = (serialBuf[1] - 48) * 100;
       temp += (serialBuf[2] - 48) * 10;

@@ -18,7 +18,6 @@ struct PARAM_{
     char WifiPWD[16];   	//Wifi pw
     char DBTable[12];       //DB테이블 이름 == 메쉬 이름(MeshID)
     char DelayTime[4];  	//딜레이 시간
-    char ToNodeName[6];	    //연결될 노드 이름
 } M1 ;
 //*******************************************
 
@@ -27,14 +26,12 @@ void setWifiSSID(char* data);
 void setWifiPWD(char* data);
 void setDBTable(char* data);
 void setDelayTime(char* data);
-void setToNodeName(char* data);
 
 char* getSerialNumber();
 char* getWifiSSID();
 char* getWifiPWD();
 char* getDBTable();
 char* getDelayTime();
-char* getToNodeName();
 
 void setDefaultValue();
 void printStruct();

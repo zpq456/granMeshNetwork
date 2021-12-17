@@ -8,15 +8,12 @@
 
 */
 
-#include <RTClib.h>
 #include <WiFi.h>
-#include <WiFiClient.h>
-#include <WiFiAP.h>
 #include <Wire.h>
-#include "src/granlib.h"
-
-#include <Ch376msc.h>
+#include <RTClib.h>
 #include <SoftwareSerial.h>
+#include <namedMesh.h>
+#include <Arduino_JSON.h>
 
 #define MAX_DATE    128
 #define HEATER  15    //
@@ -34,6 +31,7 @@
 
 
 //granlib 클래스 선언
+#include <granlib.h>
 granlib _granlib;
 
 
@@ -78,25 +76,10 @@ void getSensorFromDB() {
 
 }
 
-//USB 저장 모드일 때 EEPROM에서 센서 세팅값 가져오기
-void getSensorFromEEPROM() {
-
-}
-
 //********************** Timer *************************
 unsigned long dbStartTime;  //DB 작업 시작시간
 unsigned long dbEndTime;    //DB 작업 끝시간
 
-//********************** WiFi **************************
-#define ENABLE_SUJO_SELECT 0  //[ 1: sujo01 DB테이블 불러오기 사용 / 0: 미사용 ] 
-#define ENABLE_SENSOR_SETTING_SELECT 1 // [ 1: 센서 세팅값 DB에 저장 사용 / 0: 미사용 ]
-WiFiServer server(80);
-
-//*********************** USB 관련 변수&함수 ***************************
-#define ENABLE_USB 0        //[ 1: USB 파일저장 사용 / 0: 미사용 ] 
-Ch376msc flashDrive(Serial2, 9600);
-int createLogFlag = 0;
-char adatBuffer[255];// max length 255 = 254 char + 1 NULL character
 
 //*********************** RTC ***************************
 RTC_DS1307 rtc;
@@ -110,27 +93,21 @@ byte softSerialBuf[13] = {0,};
 int softSerialBufNum = 0;
 
 //****************** mesh network *************************
-#include "src/namedMesh.h"
-#include <Arduino_JSON.h>
 
-//#define   MESH_SSID     "whateverYouLike"
 #define   MESH_PASSWORD   "somethingSneaky"
-#define   MESH_PORT       5555
+#define   MESH_PORT       7000
 
 Scheduler  userScheduler; // to control your personal task
 namedMesh  mesh;
 
 String MESH_SSID;
-//String MESH_PASSWORD;
-//int MESH_PORT;
-String nodeName; // Name needs to be unique
-String toNode;
+String nodeName;        // Name needs to be unique
+String toNode = "MA001"; //마스터 노드에게만 센서값을 전달
 
 int Node = 1;
 int Value = 0;
 String sensor_readings;
 String Msg;
-
 
 String obtain_readings () {
   JSONVar jsonReadings;
@@ -174,7 +151,6 @@ void nodeTimeAdjustedCallback(int32_t offset) {
 void setup()
 {
   Serial.begin(115200);
-  delay(1000);
   pinMode(TACTBTN, INPUT_PULLUP);      //  BOOT MODE SELECT BUTTON
   pinMode(DBSWITCH, INPUT_PULLUP);     //Send Sensor Data Button
   pinMode(TEMP_SENSOR, INPUT_PULLUP);      //  Temp Sensor
@@ -186,15 +162,12 @@ void setup()
   _granlib._EEPROM.EEPROM_begin();
   _granlib._EEPROM.EEPROM_read_All();
 
-  if (ENABLE_USB == 1) {
-    flashDrive.init();
-  }
 
+  //******************************* RTC ******************************
   if (! rtc.begin()) {
     Serial.println("Couldn't find RTC");
     while (1);
   }
-
   if (! rtc.isrunning()) {
     Serial.println("RTC is NOT running!");
     // following line sets the RTC to the date & time this sketch was compiled
@@ -204,9 +177,7 @@ void setup()
     // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
   }
 
-
-
-  //softwareSerial
+  //****************************softwareSerial****************************
   pinMode(DE, OUTPUT);
   digitalWrite(DE, LOW);
   myPort.begin(19200, SWSERIAL_8N1, MYPORT_RX, MYPORT_TX, false, 256);
@@ -216,34 +187,7 @@ void setup()
       delay (1000);
     }
   }
-
-
-  // WiFi network에 접속
-  Serial.println();
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(_granlib._EEPROM.getWifiSSID());
-  Serial.println(_granlib._EEPROM.getWifiPWD());
-
-  WiFi.begin(_granlib._EEPROM.getWifiSSID(), _granlib._EEPROM.getWifiPWD());
-  Serial.println(WiFi.macAddress());
-
-  //WiFi 연결 확인 (10초동안 응답이 없으면 EEPROM 설정으로 넘어감
-  int wifiCounter = 0;
-  while (WiFi.status() != WL_CONNECTED) {
-    //    Serial.print("WIFI RSSI : ");
-    //    Serial.println(WiFi.RSSI());
-    delay(10);
-    wifiCounter++;
-    if (wifiCounter > 6000) { // wait 60s for wifi connect
-      devMode = 1; //set develop mode flag
-      break;
-    }
-  }
-  if (WiFi.status() == WL_CONNECTED) {
-    getSensorFromDB();
-  }
-
+  
   // devMode 확인
   if (devMode) {
     Serial.println("---------------------------------------------------------");
@@ -251,12 +195,7 @@ void setup()
     Serial.println("---------------------------------------------------------");
   }
   else { // 정상작동
-    Serial.println("");
-    Serial.println("WiFi connected.");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
 
-    server.begin();
   }
 
   //타이머 초기화
@@ -270,15 +209,7 @@ void setup()
 
   //get Data from eeprom
   MESH_SSID = _granlib._EEPROM.getDBTable();
-//  MESH_PASSWORD = _granlib._EEPROM.getMeshPW();
-//  MESH_PORT = _granlib._CONVERT.CharArrayToInt(_granlib._EEPROM.getMeshPORT());
   nodeName = _granlib._EEPROM.getSerialNumber(); // Name needs to be unique
-  toNode = _granlib._EEPROM.getToNodeName();
-
-  //  nodeName = "NS001"; // Name needs to be unique
-  //  toNode = "MA001";
-  //  nodeName = "MA001"; // Name needs to be unique
-  //  toNode = "NS001";
 
   mesh.init(MESH_SSID, MESH_PASSWORD, &userScheduler, MESH_PORT);
   mesh.setName(nodeName); // This needs to be an unique name!
@@ -318,15 +249,14 @@ void loop() {
   //Send Sensor Data Button LED Check
   if (!(digitalRead(DBSWITCH))) {
     digitalWrite(P_PUMP, HIGH); // LED On
-    delay(5);
   } else {
     digitalWrite(P_PUMP, LOW);  // LED Off
   }
 
   //Develop Mode Start Check
   if (!(digitalRead(TACTBTN))) {
-    //devMode = 1;
-    //Serial.println("Develop Mode Start...");
+    devMode = 1;
+    Serial.println("Develop Mode Start...");
   }
 
   // 작업 주기 시간 초기화

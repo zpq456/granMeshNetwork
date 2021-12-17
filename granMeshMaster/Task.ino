@@ -14,57 +14,26 @@ void readIO()
   if ((dbEndTime - dbStartTime) >= _granlib._DB.getSensorDelaytime() * 1000 &&
       !digitalRead(DBSWITCH)) {
 
-//    Serial.print("WIFI RSSI : ");
-//    Serial.println(WiFi.RSSI());
+    Serial.print("WIFI RSSI : ");
+    Serial.println(WiFi.RSSI());
 
     //get RTC data
     String RTCtime = getRTCTime(rtc);
 
     //*********************** Sensor Data Check *************************
-    // get temp data
-    byte tempbuf[4] = {
-      softSerialBuf[7],
-      softSerialBuf[8],
-      softSerialBuf[9],
-      softSerialBuf[10]
-    };
-    temp_value = _granlib._CONVERT.HexArrayToFloat(tempbuf);
 
-    // get salt data
-    byte saltbuf[4] = {
-      softSerialBuf[3],
-      softSerialBuf[4],
-      softSerialBuf[5],
-      softSerialBuf[6]
-    };
-    salt_value = _granlib._CONVERT.HexArrayToFloat(saltbuf);
-
-    Serial.print("salt : ");
-    Serial.print(salt_value);
-    Serial.print(" temp : ");
-    Serial.print(temp_value);
-    Serial.print(" RTC : ");
-    Serial.println(RTCtime);
-
-    // send [get suntex Sensor Data] message(salt & temp)
-    byte bytes_to_send[8] =  { 0x01, 0x03, 0x00, 0x35, 0x00, 0x04, 0x54, 0x07 };
-    digitalWrite(DE, HIGH);
-    delay(5);
-    myPort.write(bytes_to_send, 8);
-    delay(5);
-    digitalWrite(DE, LOW);
 
     //********************** selet saving method *************************
     if (ENABLE_USB == 1) {            // USB Read/Write Mode
-      usbWriteSensorData(temp_value, salt_value, RTCtime);
+      //usbWriteSensorData(temp_value, salt_value, RTCtime);
     }
     else {                            // write DB table
-      _granlib._DB.insertDatabaseAll(
-        _granlib._EEPROM.getSerialNumber(),
-        (String)salt_value,
-        (String)temp_value,
-        _granlib._DB.getSensorTablename()
-      );
+//      _granlib._DB.insertDatabaseAll(
+//        _granlib._EEPROM.getSerialNumber(),
+//        (String)salt_value,
+//        (String)temp_value,
+//        _granlib._DB.getSensorTablename()
+//      );
     }
 
   }
