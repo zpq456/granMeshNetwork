@@ -46,6 +46,7 @@ int devModeMSG = 0; // EEPROM data 설정 모드 안내문구 트리거
 void readSerial();
 
 //********************* Sensor *************************
+void developmentMode();
 float temp_value, temp_value_org;
 float salt_value, salt_value_org;
 
@@ -112,39 +113,56 @@ Scheduler  userScheduler; // to control your personal task
 namedMesh  mesh;
 
 String MESH_SSID;
-String nodeName = "MA001";
+String myName = "MA001";
 String toNode;
 
-int Node = 1;
-int Value = 0;
-String sensor_readings;
+int mode_type;       //[0:MainNode, 1:AI, 2:AO, 3:DI, 4:DO]
+String node_name;
+String value;
 String Msg;
 
-
-String obtain_readings () {
+String obtain_readings_nodeLiveCheck () {
   JSONVar jsonReadings;
-  jsonReadings["Node"] = Node;
-  jsonReadings["Value"] = Value;
-  sensor_readings = JSON.stringify(jsonReadings);
-  return sensor_readings;
+  jsonReadings["mode_type"] = 0;
+  jsonReadings["node_name"] = myName;
+  return JSON.stringify(jsonReadings);
 }
 
-Task taskSendMessage( TASK_SECOND * 10, TASK_FOREVER, []() {
-  Msg = "send from Master Node";
-  //Msg = obtain_readings();
-  mesh.sendBroadcast(Msg);
+//1000sec 마다 노드 확인
+Task taskSendMessage( TASK_SECOND * 1000, TASK_FOREVER, []() {
+  //  Msg = obtain_readings_nodeLiveCheck();
+  //  mesh.sendBroadcast(Msg);
 }); // start with a one second interval
 
 //mesh callback
 void receivedCallback( uint32_t from, String &msg ) {
-  Serial.printf("Received from %u msg=%s\n", from, msg.c_str());
+  //  Serial.printf("Received from %u msg=%s\n", from, msg.c_str());
+
+  Serial.println("");
+  Serial.println(msg.c_str());
+  Serial.println("");
+
   JSONVar json_object = JSON.parse(msg.c_str());
-  int node = json_object["Node"];
-  double temp = json_object["Value"];
-  Serial.print("Node: ");
-  Serial.println(node);
-  Serial.print("Temperature: ");
-  Serial.println(temp);
+  int mode_type = json_object["mode_type"];
+  const char* strbuf = json_object["node_name"];
+  String node_name = strbuf;
+  const char* strbuf2 = json_object["Data"];
+  String dataString = strbuf2;
+
+  JSONVar data_object = JSON.parse(dataString.c_str());
+  int data_type = data_object["data_type"];
+  switch (data_type) {
+    case 0: // AI temp sensor
+      value = data_object["value"];
+
+      Serial.println("");
+      Serial.print("Node: ");
+      Serial.println(node_name);
+      Serial.print("Temperature: ");
+      Serial.println(value.toFloat());
+      Serial.println("");
+      break;
+  }
 }
 
 void newConnectionCallback(uint32_t nodeId) {
@@ -189,7 +207,7 @@ void setup()
     // January 21, 2014 at 3am you would call:
     // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
   }
-  
+
   // WiFi network에 접속
   Serial.println();
   Serial.println();
@@ -207,7 +225,7 @@ void setup()
     Serial.println(WiFi.RSSI());
     delay(10);
     wifiCounter++;
-    if (wifiCounter > 6000) { // wait 60s for wifi connect
+    if (wifiCounter > 1) { // wait 60s for wifi connect
       devMode = 1; //set develop mode flag
       break;
     }
@@ -242,10 +260,10 @@ void setup()
 
   //get Data from eeprom
   MESH_SSID = _granlib._EEPROM.getDBTable();
-  nodeName = _granlib._EEPROM.getSerialNumber(); // Name needs to be unique
+  myName = _granlib._EEPROM.getSerialNumber(); // Name needs to be unique
 
   mesh.init(MESH_SSID, MESH_PASSWORD, &userScheduler, MESH_PORT);
-  mesh.setName(nodeName); // This needs to be an unique name!
+  mesh.setName(myName); // This needs to be an unique name!
   mesh.onChangedConnections([]() {
     Serial.printf("Changed connection\n");
   });
