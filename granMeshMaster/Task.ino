@@ -14,8 +14,8 @@ void readIO()
   if ((dbEndTime - dbStartTime) >= _granlib._DB.getSensorDelaytime() * 1000 &&
       !digitalRead(DBSWITCH)) {
 
-//    Serial.print("WIFI RSSI : ");
-//    Serial.println(WiFi.RSSI());
+    //    Serial.print("WIFI RSSI : ");
+    //    Serial.println(WiFi.RSSI());
 
     //get RTC data
     String RTCtime = getRTCTime(rtc);
@@ -24,17 +24,10 @@ void readIO()
 
 
     //********************** selet saving method *************************
-    if (ENABLE_USB == 1) {            // USB Read/Write Mode
-      //usbWriteSensorData(temp_value, salt_value, RTCtime);
-    }
-    else {                            // write DB table
-//      _granlib._DB.insertDatabaseAll(
-//        _granlib._EEPROM.getSerialNumber(),
-//        (String)salt_value,
-//        (String)temp_value,
-//        _granlib._DB.getSensorTablename()
-//      );
-    }
+
+    //********************* check node alive *********************
+    taskSendMessage.enable();
+
 
   }
 }
@@ -55,7 +48,7 @@ void developmentMode() {
   //insert or update sensor setting
   else if ((dbEndTime - dbStartTime) >= _granlib._DB.getSensorDelaytime() * 1000 &&
            !(digitalRead(TACTBTN)) && (digitalRead(DBSWITCH))) {
-    getSensorFromDB();
+    //getSensorFromDB();
   }
 
   //waiting AP Message
@@ -95,72 +88,6 @@ float avg (float x , float * data)
   return average;
 }
 
-
-void usbWriteSensorData(float temp, float salt, String RTCtime) {
-
-  if (flashDrive.checkIntMessage()) {
-    if (flashDrive.getDeviceStatus()) {
-      Serial.println(F("Flash drive attached!"));
-    } else {
-      Serial.println(F("Flash drive detached!"));
-    }
-  }
-  if (createLogFlag < 2 && flashDrive.driveReady()) {
-    //기존에 남아있는 LOG.TXT 삭제
-    if (createLogFlag == 0) {
-      flashDrive.setFileName("LOG.TXT");  //set the file name
-      flashDrive.deleteFile();              //delete file
-    }
-    flashDrive.setFileName("LOG.TXT");  //set the file name
-    flashDrive.openFile();                //open the file
-    char text[] = "time,salt,temp\n";
-
-    for (int a = 0; a < 1; a++) {        //write text from string(adat) to flash drive 20 times
-      flashDrive.writeFile(text, strlen(text)); //string, string length
-    }
-    flashDrive.closeFile();               //at the end, close the file
-
-    createLogFlag++;
-  } else { //atach Sensor Data
-    String atachText = RTCtime + "," + (String)salt + "," + (String)temp + "\n";
-    atachText.toCharArray(adatBuffer, atachText.length() + 1);
-    Serial.print(atachText);
-
-    flashDrive.setFileName("LOG.TXT");  //set the file name
-    if (flashDrive.openFile() == ANSW_USB_INT_SUCCESS) {             //open the file
-      flashDrive.moveCursor(flashDrive.getFileSize()); // is almost the same as CURSOREND, because we put our cursor at end of the file
-    }
-    for (int a = 0; a < 1; a++) {        //write text from string(adat) to flash drive 20 times
-      if (flashDrive.getFreeSectors()) { //check the free space on the drive
-        flashDrive.writeFile(adatBuffer, strlen(adatBuffer));//atachText.length());
-      } else {
-        printInfo("Disk full");
-      }
-    }
-    flashDrive.closeFile();               //at the end, close the file
-  }
-
-}
-
-
-//Print information
-void printInfo(const char info[]) {
-
-  int infoLength = strlen(info);
-  if (infoLength > 40) {
-    infoLength = 40;
-  }
-  Serial.print(F("\n\n"));
-  for (int a = 0; a < infoLength; a++) {
-    Serial.print('*');
-  }
-  Serial.println();
-  Serial.println(info);
-  for (int a = 0; a < infoLength; a++) {
-    Serial.print('*');
-  }
-  Serial.print(F("\n\n"));
-}
 
 //*************************** RTC 함수 ******************************
 void SetRTCTime(String ss) //yyyymmddhhmmss

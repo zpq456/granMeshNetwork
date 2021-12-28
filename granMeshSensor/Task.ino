@@ -18,40 +18,16 @@ void readIO()
     String RTCtime = getRTCTime(rtc);
 
     //*********************** Sensor Data Check *************************
-    // get temp data
-    byte tempbuf[4] = {
-      softSerialBuf[7],
-      softSerialBuf[8],
-      softSerialBuf[9],
-      softSerialBuf[10]
-    };
-    temp_value = _granlib._CONVERT.HexArrayToFloat(tempbuf);
+    int temp = analogRead(TEMP_SENSOR);//readIO()
+    value = (String)GetTemperature(temp);
 
-    // get salt data
-    byte saltbuf[4] = {
-      softSerialBuf[3],
-      softSerialBuf[4],
-      softSerialBuf[5],
-      softSerialBuf[6]
-    };
-    salt_value = _granlib._CONVERT.HexArrayToFloat(saltbuf);
-
-    Serial.print("salt : ");
-    Serial.print(salt_value);
     Serial.print(" temp : ");
-    Serial.print(temp_value);
-    Serial.print(" RTC : ");
-    Serial.println(RTCtime);
-
-    // send [get suntex Sensor Data] message(salt & temp)
-    byte bytes_to_send[8] =  { 0x01, 0x03, 0x00, 0x35, 0x00, 0x04, 0x54, 0x07 };
-    digitalWrite(DE, HIGH);
-    myPort.write(bytes_to_send, 8);
-    digitalWrite(DE, LOW);
+    Serial.print(value);
 
     //********************** send data to master Node *************************
 
   }
+
 }
 
 void developmentMode() {

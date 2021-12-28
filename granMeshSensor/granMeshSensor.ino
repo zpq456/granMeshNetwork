@@ -31,21 +31,15 @@
 #include <granlib.h>
 granlib _granlib;
 
-//********************** Set Board Type ******************************
-#define SET_BOARD_TYPE 0
-
-//#if SET_BOARD_TYPE == 0
-//#elif SET_BOARD_TYPE == 1
-//#elif SET_BOARD_TYPE == 2
-//#elif SET_BOARD_TYPE == 3
-//
-
+//board include
+#include <GNet.h>
+GNet _GNet;
 
 
 //********************** comm **************************
 char serialBuf[21]; // serial로 들어오는 데이타 저장을 위한 임시버퍼.
 char *granlibBuf;   // granlib의 EEPROM 데이타 저장을 위한 임시버퍼.
-int devMode = 1;    // EEPROM data 설정 모드
+int devMode = 0;    // EEPROM data 설정 모드
 int devModeMSG = 0; // EEPROM data 설정 모드 안내문구 트리거
 void readSerial();
 
@@ -102,54 +96,79 @@ int softSerialBufNum = 0;
 
 //****************** mesh network *************************
 
-#define   MESH_PASSWORD   "somethingSneaky"
-#define   MESH_PORT       7000
-
 Scheduler  userScheduler; // to control your personal task
 namedMesh  mesh;
 
-String MESH_SSID;
-String myName;        // Name needs to be unique
-String toNode = "MA001"; //마스터 노드에게만 센서값을 전달
-
-int mode_type = 0;       //[0:MainNode, 1:AI, 2:AO, 3:DI, 4:DO]
-int data_type = 0;       //[0:temp, 1:... ]
+String myNodeName;
 String node_name;
 String value;
 String Msg;
 
 String obtain_readings_sendTempSensor () {
-  
-  //set data json
-  JSONVar jsonDatas;
-  jsonDatas["data_type"] = data_type; //0
-  jsonDatas["value"] = value;
-  
   //set send json
   JSONVar jsonReadings;
-  jsonReadings["mode_type"] = mode_type; //1
-  jsonReadings["node_name"] = myName;
-//  jsonReadings["Data"] = jsonDatas;
+  jsonReadings["board_type"] = BOARD_TYPE;
+  jsonReadings["node_name"] = _GNet.getmyNodeName();
+
+  //set data json
+  JSONVar jsonDatas;
+  jsonDatas["data_type"] = DATA_TYPE; //1
+  jsonDatas["value"] = value;
+
   jsonReadings["Data"] = JSON.stringify(jsonDatas);
+  return JSON.stringify(jsonReadings);
+}
+
+//마스터의 노드 확인 답장
+String obtain_readings_nodeLiveCheck_ackmsg () {
+  int board_type = 0; // To Master Board
+  String Msg = "AI Sensor " + _GNet.getmyNodeName() + " is alive!!";
+
+  //set send json
+  JSONVar jsonReadings;
+  jsonReadings["board_type"] = board_type;
+  jsonReadings["node_name"] = _GNet.getmyNodeName();
+  jsonReadings["Data"] = Msg;
   return JSON.stringify(jsonReadings);
 }
 
 //1000sec 마다 센서값 전송
 Task taskSendMessage( TASK_SECOND * 10, TASK_FOREVER, []() {
+  String tonode = _GNet.gettoNodeMain();
   Msg = obtain_readings_sendTempSensor();
-  mesh.sendSingle(toNode, Msg);
+  mesh.sendSingle(tonode, Msg);
 }); // start with a one second interval
+
+//// sensor nodeLiveCheck ack msg
+//Task taskAckMessage( TASK_SECOND * 10, TASK_FOREVER, []() {
+//  String tonode = _GNet.gettoNodeMain();
+//  Msg = obtain_readings_nodeLiveCheck_ackmsg();
+//  mesh.sendSingle(tonode, Msg);
+//}); // start with a one second interval
 
 //mesh callback
 void receivedCallback( uint32_t from, String &msg ) {
   //  Serial.printf("Received from %u msg=%s\n", from, msg.c_str());
+
+  Serial.println("");
+  Serial.println(msg.c_str());
+  Serial.println("");
+
   JSONVar json_object = JSON.parse(msg.c_str());
-  int node = json_object["Node"];
-  double temp = json_object["Value"];
-  Serial.print("Node: ");
-  Serial.println(node);
-  Serial.print("Temperature: ");
-  Serial.println(temp);
+  int mode_type = json_object["mode_type"];
+  const char* strbuf = json_object["node_name"];
+  String node_name = strbuf;
+
+  switch (mode_type) {
+    // sensor nodeLiveCheck ack msg
+    case 0:
+      String tonode = _GNet.gettoNodeMain();
+      Msg = obtain_readings_nodeLiveCheck_ackmsg();
+      mesh.sendSingle(tonode, Msg);
+      //      userScheduler.addTask(taskAckMessage);
+      //      taskAckMessage.enable();
+      break;
+  }
 }
 
 void newConnectionCallback(uint32_t nodeId) {
@@ -223,11 +242,12 @@ void setup()
   mesh.setDebugMsgTypes(ERROR | DEBUG | CONNECTION);  // set before init() so that you can see startup messages
 
   //get Data from eeprom
-  MESH_SSID = _granlib._EEPROM.getDBTable();
-  myName = _granlib._EEPROM.getSerialNumber(); // Name needs to be unique
+  _GNet.setMESH_SSID(_granlib._EEPROM.getDBTable());
+  _GNet.setmyNodeName(_granlib._EEPROM.getSerialNumber());
 
-  mesh.init(MESH_SSID, MESH_PASSWORD, &userScheduler, MESH_PORT);
-  mesh.setName(myName); // This needs to be an unique name!
+  myNodeName = _GNet.getmyNodeName();
+  mesh.init(_GNet.getMESH_SSID(), MESH_PASSWORD, &userScheduler, MESH_PORT);
+  mesh.setName(myNodeName); // This needs to be an unique name!
   mesh.onChangedConnections([]() {
     Serial.printf("Changed connection\n");
   });
@@ -238,7 +258,8 @@ void setup()
   mesh.onNodeTimeAdjusted(&nodeTimeAdjustedCallback);
 
   userScheduler.addTask(taskSendMessage);
-  taskSendMessage.enable();
+  taskSendMessage.enable(); // send sensor data
+  //  userScheduler.addTask(taskAckMessage);
 }
 
 void loop() {
@@ -254,10 +275,9 @@ void loop() {
       //      Serial.println(" ");
     }
   }
-  else {                                //readIO()
-
+  else {
     readIO();
-
+    mesh.update();
     devModeMSG = 0; //Serial 설정 안내문구
   }
 
@@ -281,10 +301,4 @@ void loop() {
     dbStartTime = millis();
     dbEndTime = millis();
   }
-
-  //************************Mesh Network***************************
-  //mesh sensor check
-  value = analogRead(TEMP_SENSOR);
-
-  mesh.update();
 }
