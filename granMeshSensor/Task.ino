@@ -1,31 +1,64 @@
 //---------------------- mov_average.h -----------------------
 #ifndef __AVERAGE_H__
 #define __AVERAGE_H__
-#define FILTERDATA 100
+#define FILTERDATA 200
+//  100    : 1:1연결 => 메시지가 많이 주고받아짐, 끊어짐 없음
+//  100    : 1:3연결 => 메시지가 많이 주고받아짐, 가끔 끊어짐
+//  10     : 1:1연결 => 통신이 원활하지만 가끔 끊어짐
+//  500    :
+#define SendMeshDelay 500
 float avg (float x);
 #endif // __AVERAGE_H__
 float saltdata[FILTERDATA];
 float tempdata[FILTERDATA];
+int avgCounter = 0; // 이동평균 횟수를 완수할때까지 대기시키기
 //-------------------------------------------------------------
 
 void readIO()
 {
-  //시간이 되면 작업 진행
-  if ((dbEndTime - dbStartTime) >= _granlib._DB.getSensorDelaytime() * 1000 &&
+  //*********************** Sensor Data Check *************************
+  temp_value_org = GetTemperature(analogRead(TEMP_SENSOR));
+  temp_value = avg(temp_value_org, &tempdata[0]);
+
+
+  if (avgCounter < FILTERDATA) {
+    avgCounter++;
+    if (avgCounter == FILTERDATA - 1) {
+      Serial.println("");
+      Serial.println("Sensor check ready");
+      Serial.println("");
+    }
+  }
+  else {
+    //설정한 분해능으로 값을 반올림하기
+
+    float roundValue = getRoundValue(temp_value, _granlib._EEPROM.getDeltaT());
+
+    // 일정 수치이상 변화가 일어났을 때에 현재 온도값을 갱신한다.
+    if (roundValue != value.toFloat()) {
+      value = (String)roundValue;
+      Serial.print("change temp over DeltaT : ");
+      Serial.println(value);
+
+      //온도값을 마스터에 송신
+      if ( (sendMeshEndTime - sendMeshStartTime) >= SendMeshDelay) {
+        meshSendMessage(_GNet.gettoNodeMain(), obtain_readings_sendTempSensor());
+        //메쉬 딜레이 초기화
+        sendMeshStartTime = millis();
+        sendMeshEndTime = millis();
+      }
+    }
+  }
+
+
+  //정해진 시간이 되면 현재값을 마스터에 송신 (생존신고)
+  if ((dbEndTime - dbStartTime) >= dbDelayTime &&
       !digitalRead(DBSWITCH)) {
-
-    //get RTC data
-    String RTCtime = getRTCTime(rtc);
-
-    //*********************** Sensor Data Check *************************
-    int temp = analogRead(TEMP_SENSOR);//readIO()
-    value = (String)GetTemperature(temp);
-
     Serial.print(" temp : ");
-    Serial.print(value);
+    Serial.println(value);
 
-    //********************** send data to master Node *************************
-
+    //온도값을 마스터에 송신
+    meshSendMessage(_GNet.gettoNodeMain(), obtain_readings_sendTempSensor());
   }
 
 }
@@ -43,14 +76,7 @@ void developmentMode() {
   if (Serial.available() != 0) {
     readSerial();
   }
-  //insert or update sensor setting
-  else if ((dbEndTime - dbStartTime) >= _granlib._DB.getSensorDelaytime() * 1000 &&
-           !(digitalRead(TACTBTN)) && (digitalRead(DBSWITCH))) {
-    getSensorFromDB();
-  }
 
-  //waiting AP Message
-  //checkAPMessage();
 }
 
 double GetTemperature(int v)
@@ -86,7 +112,12 @@ float avg (float x , float * data)
   return average;
 }
 
-
+float getRoundValue(float x, float deltaT) {
+  //     ( ( 현재값+(분해능/2) ) / 분해능 ) * 분해능
+  float a = x + (deltaT / 2.0);
+  int b = (int)(a / deltaT);
+  return (float)b * deltaT;
+}
 
 //Print information
 void printInfo(const char info[]) {
@@ -105,49 +136,4 @@ void printInfo(const char info[]) {
     Serial.print('*');
   }
   Serial.print(F("\n\n"));
-}
-
-//*************************** RTC 함수 ******************************
-void SetRTCTime(String ss) //yyyymmddhhmmss
-{
-  int y, m, d, h, n, s;
-  char buf[5];
-  char dt[15];
-  strcpy(dt, String2char(ss));
-  strncpy(buf, &dt[0], 4);
-  buf[4] = 0;
-  y = atoi(buf);
-  strncpy(buf, &dt[4], 2);
-  buf[2] = 0;
-  m = atoi(buf);
-  strncpy(buf, &dt[6], 2);
-  d = atoi(buf);
-  strncpy(buf, &dt[8], 2);
-  h = atoi(buf);
-  strncpy(buf, &dt[10], 2);
-  n = atoi(buf);
-  strncpy(buf, &dt[12], 2);
-  s = atoi(buf);
-  rtc.adjust(DateTime(y, m, d, h, n, s));
-}
-
-char* String2char(String command) {
-  if (command.length() != 0) {
-    char *p = const_cast<char*>(command.c_str());
-    return p;
-  }
-}
-
-String getRTCTime(RTC_DS1307 RTC) {
-  DateTime cur_dt;
-  cur_dt = RTC.now();
-  String RTCtime =
-    (String)cur_dt.year() + "." +
-    (String)cur_dt.month() + "." +
-    (String)cur_dt.day() + "." +
-    (String)cur_dt.hour() + ":" +
-    (String)cur_dt.minute() + ":" +
-    (String)cur_dt.second();
-
-  return RTCtime;
 }

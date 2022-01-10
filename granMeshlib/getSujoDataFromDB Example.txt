@@ -1,0 +1,235 @@
+
+//**************************** get DB Data ***************************
+    if (ENABLE_SUJO_SELECT) {           // select DB data and println Serial
+      _granlib._DB.getDBdata(
+        _granlib._EEPROM.getDBTable()
+      );
+      delay(10);
+      _granlib._DB.parsingJson();
+    }
+
+//----------------------------granDB.h----------------------------
+
+ struct PARAM_
+    {
+        String no;          //번호
+        String serial;   //시리얼번호
+        String salt;      //염도
+        String temp;      //온도
+        String datatime; //등록시간
+    } TableSujo;
+
+    PARAM_ sujo01[ARRAY_LEN];
+
+// DB Connect Info
+    String domainName = "http://kimchilab.net/";
+    String phpName_insert = "/post-kimchi-data.php";
+    String phpName_select_all = "/select-kimchi-data-all.php";
+    String phpName_select_data = "/select-kimchi-data.php";
+
+    String apiKeyValue = "tPmAT5Ab3j7F9";
+    String sensorReadings;
+
+	void insertDatabaseAll(String serial, String salt, String temp, String tableName);
+    void postSensorSetting(int type, String serial, String tablename, String delaytime);
+    void getDBdata(String tableName);
+    void parsingJson();
+
+    void setNo(String data, int aryNum);
+    void setSerial(String data, int aryNum);
+    void setSalt(String data, int aryNum);
+    void setTemp(String data, int aryNum);
+    void setDatatime(String data, int aryNum);
+    void setSensorReadings(String data);
+
+    String getNo(int aryNum);
+    String getSerial(int aryNum);
+    String getSalt(int aryNum);
+    String getTemp(int aryNum);
+    String getDatatime(int aryNum);
+    String getSensorReadings();
+
+
+//---------------------------granDB.cpp---------------------------
+granDB::granDB()
+{
+    for(int i=0;i<ARRAY_LEN;i++){
+        sujo01[i].no = "\0";
+        sujo01[i].serial = "\0";
+        sujo01[i].salt = "\0";
+        sujo01[i].temp = "\0";
+        sujo01[i].datatime = "\0";
+    }
+    
+}
+
+void granDB::insertDatabaseAll(String serial, String salt, String temp, String tableName)
+{
+    WiFiClient client;
+    HTTPClient http;
+
+    String serverName = domainName + tableName + phpName_insert ;
+
+    // Your Domain name with URL path or IP address with path
+    http.begin(client, serverName);
+
+    // Specify content-type header
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+    //--------------------------------------Kimchi sujo1 teable Data Send format-----------------------------------------
+    // Prepare your HTTP POST request data
+    String httpRequestData = "api_key=" + apiKeyValue + "&serial=" + serial + "&salt=" + salt + "&temp=" + temp + "";
+    Serial.print("httpRequestData: ");
+    Serial.println(httpRequestData);
+
+    // You can comment the httpRequestData variable above
+    // then, use the httpRequestData variable below (for testing purposes without the BME280 sensor)
+    //String httpRequestData = "api_key=tPmAT5Ab3j7F9&sensor=BME280&location=Office&value1=24.75&value2=49.54&value3=1005.14";
+
+    // Send HTTP POST request
+    int httpResponseCode = http.POST(httpRequestData);
+
+    // If you need an HTTP request with a content type: text/plain
+    //http.addHeader("Content-Type", "text/plain");
+    //int httpResponseCode = http.POST("Hello, World!");
+
+    // If you need an HTTP request with a content type: application/json, use the following:
+    //http.addHeader("Content-Type", "application/json");
+    //int httpResponseCode = http.POST("{\"value1\":\"19\",\"value2\":\"67\",\"value3\":\"78\"}");
+
+    if (httpResponseCode > 0)
+    {
+        Serial.print("HTTP Response code: ");
+        Serial.println(httpResponseCode);
+    }
+    else
+    {
+        Serial.print("Error code: ");
+        Serial.println(httpResponseCode);
+    }
+    // Free resources
+    http.end();
+    client.stop();
+}
+
+void granDB::postSensorSetting(int type, String serial, String tablename, String delaytime)
+{
+    WiFiClient client;
+    HTTPClient http;
+
+    String serverName;
+    switch(type){
+        case 0:
+        serverName = domainName + phpName_insert_sensor_setting ;
+        break;
+        case 1:
+        serverName = domainName + phpName_update_sensor_setting ;
+        break;
+    }
+    
+    // Your Domain name with URL path or IP address with path
+    http.begin(client, serverName);
+
+    // Specify content-type header
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+   // Prepare your HTTP POST request data
+    String httpRequestData = "api_key=" + apiKeyValue + "&serial=" + serial + "&tablename=" + tablename + "&delaytime=" + delaytime + "";
+    Serial.print("httpRequestData: ");
+    Serial.println(httpRequestData);
+
+    int httpResponseCode = http.POST(httpRequestData);
+
+    if (httpResponseCode > 0)
+    {
+        Serial.print("HTTP Response code: ");
+        Serial.println(httpResponseCode);
+    }
+    else
+    {
+        Serial.print("Error code: ");
+        Serial.println(httpResponseCode);
+    }
+    // Free resources
+    http.end();
+    client.stop();
+}
+
+void granDB::getDBdata(String tableName){
+    WiFiClient client;
+    HTTPClient http;
+
+    String serverName = domainName + tableName + phpName_select_data;
+      
+    // Your Domain name with URL path or IP address with path
+    http.begin(client, serverName);
+
+    // Specify content-type header
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+    // Send HTTP GET request
+    int httpResponseCode = http.GET();
+
+    if (httpResponseCode > 0)
+    {
+        Serial.print("HTTP Response code: ");
+        Serial.println(httpResponseCode);
+        setSensorReadings(http.getString());
+    }
+    else
+    {
+        Serial.print("Error code: ");
+        Serial.println(httpResponseCode);
+    }
+    // Free resources
+    http.end();
+    client.stop();
+}
+
+void granDB::parsingJson(){
+    StaticJsonDocument<200> doc;
+    
+    Serial.print("sensorReadings : ");
+    Serial.println(getSensorReadings());
+
+    // Deserialize the JSON document
+    DeserializationError error = deserializeJson(doc, getSensorReadings());
+    // Test if parsing succeeds.
+    if (error) {
+      Serial.print(F("deserializeJson() failed: "));
+      Serial.println(error.f_str());
+       return;
+    }
+
+    setNo(doc["no"],0);
+    setSerial(doc["serial"],0);
+    setSalt(doc["salt"],0);
+    setTemp(doc["temp"],0);
+    setDatatime(doc["time"],0);
+
+    // Serial.print(" no : ");
+    // Serial.println(getNo(0));
+    // Serial.print(" serial : ");
+    // Serial.println(getSerial(0));
+    // Serial.print(" salt : ");
+    // Serial.println(getSalt(0));
+    // Serial.print(" temp : ");
+    // Serial.println(getTemp(0));
+    // Serial.print(" time : ");
+    // Serial.println(getDatatime(0));
+}
+
+
+void granDB::setNo(String data,int aryNum) {sujo01[aryNum].no = data;}
+void granDB::setSerial(String data,int aryNum) {sujo01[aryNum].serial = data;}
+void granDB::setSalt(String data,int aryNum) {sujo01[aryNum].salt = data;}
+void granDB::setTemp(String data,int aryNum) {sujo01[aryNum].temp = data;}
+void granDB::setDatatime(String data,int aryNum) {sujo01[aryNum].datatime = data;}
+void granDB::setSensorReadings(String data) {sensorReadings = data;}
+
+String granDB::getNo(int aryNum) {return sujo01[aryNum].no;}
+String granDB::getSerial(int aryNum) {return sujo01[aryNum].serial;}
+String granDB::getSalt(int aryNum) {return sujo01[aryNum].salt;}
+String granDB::getTemp(int aryNum) {return sujo01[aryNum].temp;}
+String granDB::getDatatime(int aryNum) {return sujo01[aryNum].datatime;}
+String granDB::getSensorReadings() {return sensorReadings;}

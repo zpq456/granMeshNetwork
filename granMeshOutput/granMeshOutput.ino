@@ -10,7 +10,6 @@
 
 #include <namedMesh.h>
 #include <Arduino_JSON.h>
-#include <math.h>
 
 #define MAX_DATE    128
 #define HEATER  15    //
@@ -42,19 +41,13 @@ int devMode = 0;    // EEPROM data 설정 모드
 int devModeMSG = 0; // EEPROM data 설정 모드 안내문구 트리거
 void readSerial();
 
-//********************* Sensor *************************
+//********************* develop mode Use EEPROM *************************
 void developmentMode();
-float temp_value, temp_value_org;
-float salt_value, salt_value_org;
-
 
 //********************** Timer *************************
-unsigned long dbStartTime;        //DB 작업 시작시간
-unsigned long dbEndTime;          //DB 작업 끝시간
-unsigned long sendMeshStartTime;  //Send Mesh 지연 시작시간
-unsigned long sendMeshEndTime;    //Send Mesh 지연 끝시간
+unsigned long dbStartTime;  //DB 작업 시작시간
+unsigned long dbEndTime;    //DB 작업 끝시간
 int dbDelayTime;
-
 
 //****************** mesh network *************************
 
@@ -68,16 +61,29 @@ String Msg;
 void meshSendMessage(String tonode, String Msg);
 
 
-
 void pinModeSetup(int boardType) {
   pinMode(TACTBTN, INPUT_PULLUP);      //  BOOT MODE SELECT BUTTON
   pinMode(DBSWITCH, INPUT_PULLUP);     //Send Sensor Data Button
 
   switch (boardType) {
-    case 5: // AICT
-      pinMode(TEMP_SENSOR, INPUT_PULLUP);      //  Temp Sensor
-      pinMode(P_PUMP, OUTPUT);             //Send Sensor Data Button LED
-      digitalWrite(P_PUMP, LOW);  // LED Off
+    case 2: // DO8
+      pinMode(DO_1, OUTPUT);
+      pinMode(DO_2, OUTPUT);
+      pinMode(DO_3, OUTPUT);
+      pinMode(DO_4, OUTPUT);
+      pinMode(DO_5, OUTPUT);
+      pinMode(DO_6, OUTPUT);
+      pinMode(DO_7, OUTPUT);
+      pinMode(DO_8, OUTPUT);
+
+      digitalWrite(DO_1, LOW);
+      digitalWrite(DO_2, LOW);
+      digitalWrite(DO_3, LOW);
+      digitalWrite(DO_4, LOW);
+      digitalWrite(DO_5, LOW);
+      digitalWrite(DO_6, LOW);
+      digitalWrite(DO_7, LOW);
+      digitalWrite(DO_8, LOW);
       break;
   }
 }
@@ -93,9 +99,6 @@ void setup()
   _granlib._EEPROM.getEEPROM();
   dbDelayTime = ((String)_granlib._EEPROM.getDelayTime()).toInt() * 1000;
 
-  //센서값 초기화
-  value = (String)GetTemperature(analogRead(TEMP_SENSOR));
-
   // devMode 확인
   if (devMode) {
     Serial.println("---------------------------------------------------------");
@@ -107,12 +110,8 @@ void setup()
   }
 
   //타이머 초기화
-  temp_value = 0.0;
-  salt_value = 0.0;
   dbStartTime = millis();
   dbEndTime = millis();
-  sendMeshStartTime = millis();
-  sendMeshEndTime = millis();
 
   //*********************** mesh network ***************************88
   initMesh();
@@ -130,13 +129,6 @@ void loop() {
     devModeMSG = 0; //Serial 설정 안내문구
   }
 
-  //Send Sensor Data Button LED Check
-  if (!(digitalRead(DBSWITCH))) {
-    digitalWrite(P_PUMP, HIGH); // LED On
-  } else {
-    digitalWrite(P_PUMP, LOW);  // LED Off
-  }
-
   //Develop Mode Start Check
   if (!(digitalRead(TACTBTN))) {
     devMode = 1;
@@ -151,6 +143,4 @@ void loop() {
     dbEndTime = millis();
   }
 
-  //메쉬 샌드 주기 시간
-  sendMeshEndTime = millis();
 }

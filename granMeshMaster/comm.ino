@@ -1,6 +1,7 @@
 int temp = 0;
 
 void readSerial() {
+  String stringTemp;
   Serial.println("in Serial.");
 
   SerialGets(&serialBuf[0], 21);
@@ -10,21 +11,29 @@ void readSerial() {
       _granlib._EEPROM.setSerialNumber(&serialBuf[1]);
       Serial.print("SerialNumber(S)    : "); printCharArray(_granlib._EEPROM.getSerialNumber(), 6);
       break;
-    case 'I': //SerialNumber 설정
+    case 'I': //Wifi ID 설정
       _granlib._EEPROM.setWifiSSID(&serialBuf[1]);
       Serial.print("Wifi SSID(I)       : "); printCharArray(_granlib._EEPROM.getWifiSSID(), 16);
       break;
-    case 'P': //SerialNumber 설정
+    case 'P': //Wifi PW 설정
       _granlib._EEPROM.setWifiPWD(&serialBuf[1]);
       Serial.print("Wifi Passward(P)   : "); printCharArray(_granlib._EEPROM.getWifiPWD(), 16);
       break;
-    case 'D': //SerialNumber 설정
+    case 'N': //Wifi Name 설정
       _granlib._EEPROM.setDBTable(&serialBuf[1]);
-      Serial.print("Wifi DB Table Name(D) : "); printCharArray(_granlib._EEPROM.getDBTable(), 16);
+      Serial.print("Wifi DB Table Name(N) : "); printCharArray(_granlib._EEPROM.getDBTable(), 16);
       break;
-    case 'T': //SerialNumber 설정
-      _granlib._EEPROM.setDelayTime(&serialBuf[1]);
-      Serial.print("Delay Time(T) [001~999 sec] : "); printCharArray(_granlib._EEPROM.getDelayTime(), 4);
+    case 'T': //Delay Time 설정
+      stringTemp = &serialBuf[1];
+      _granlib._EEPROM.setDelayTime(stringTemp.toInt());
+      Serial.print("Delay Time(T) : "); 
+      Serial.println(_granlib._EEPROM.getDelayTime());
+      break;
+    case 'D': //Delta Time 설정
+      stringTemp = &serialBuf[1];
+      _granlib._EEPROM.setDeltaT(stringTemp.toFloat());
+      Serial.print("Delta Time(D) : ");
+      Serial.println(_granlib._EEPROM.getDeltaT());
       break;
     case '*': // Restore default value
       temp  = (serialBuf[1] - 48) * 100;
@@ -36,27 +45,21 @@ void readSerial() {
         _granlib._EEPROM.printStruct();
       }
       break;
-    case 'R': // Restore default value
-      //yyyymmddhhmmss
-      SetRTCTime(&serialBuf[1]);
-      Serial.print("RTC Time : ");
-      Serial.println(getRTCTime(rtc));
-      break;
     case '!':   //EEPROM Save
-      _granlib._EEPROM.EEPROM_write_All();
+      _granlib._EEPROM.putEEPROM();
+      //      _granlib._EEPROM.EEPROM_write_All();
       Serial.println("=================================================");
       _granlib._EEPROM.printStruct();
       Serial.println("PARAMETER Saved.");
       break;
     case '@':   //EEPROM Read
       Serial.print("E="); Serial.println('E');
-      _granlib._EEPROM.EEPROM_read_All();
+      _granlib._EEPROM.getEEPROM();
 
       Serial.println("=================================================");
       Serial.println("PARAMETER Read.");
       _granlib._EEPROM.printStruct();
       Serial.println("@:Read parameter, !:Save parameter, ?:Help, ~:Exit Develop Modes");
-      Serial.println("R:Set RTC Time [YYYYMMDDhhmmss]");
       break;
     case '?':
       Serial.println("=================================================");
@@ -65,7 +68,6 @@ void readSerial() {
       Serial.println("Txx is 2 digit, Lxxx, Bxxx is 3 digit");
       Serial.println("*777:Restore factory default value.");
       Serial.println("@:Read parameter, !:Save parameter, ?:Help, ~:Exit Develop Modes");
-      Serial.println("R:Set RTC Time [YYYYMMDDhhmmss]");
       break;
     case '~':
       devMode = 0;
@@ -81,7 +83,6 @@ void readSerial() {
 
   Serial.flush();
 }
-
 
 // UART를 통해 들어오는 것을 배열 버퍼에 넣기 위한 함수.
 uint8_t SerialGets(char dest[], uint8_t length) {

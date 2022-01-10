@@ -7,14 +7,14 @@
 
 //******************** board Select ***********************
 
-#define BOARD_TYPE 5
+#define BOARD_TYPE 0
 
 #if BOARD_TYPE == 0                 // Master DI4 DO4
     #include "board/MasterDI4DO4.h"
 #elif BOARD_TYPE == 1               // DI8
 
 #elif BOARD_TYPE == 2               // DO8
-            
+    #include "board/DO8.h"
 #elif BOARD_TYPE == 3               // AI8
              
 #elif BOARD_TYPE == 4               // AO4

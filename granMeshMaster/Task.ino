@@ -11,24 +11,16 @@ float tempdata[FILTERDATA];
 void readIO()
 {
   //시간이 되면 작업 진행
-  if ((dbEndTime - dbStartTime) >= _granlib._DB.getSensorDelaytime() * 1000 &&
+  if ((dbEndTime - dbStartTime) >= dbDelayTime &&
       !digitalRead(DBSWITCH)) {
 
     //    Serial.print("WIFI RSSI : ");
     //    Serial.println(WiFi.RSSI());
 
-    //get RTC data
-    String RTCtime = getRTCTime(rtc);
+    //********************** send order output ***********************
 
-    //*********************** Sensor Data Check *************************
-
-
-    //********************** selet saving method *************************
-
-    //********************* check node alive *********************
-    taskSendMessage.enable();
-
-
+    //print DataTable
+    printDataTable();
   }
 }
 
@@ -46,7 +38,7 @@ void developmentMode() {
     readSerial();
   }
   //insert or update sensor setting
-  else if ((dbEndTime - dbStartTime) >= _granlib._DB.getSensorDelaytime() * 1000 &&
+  else if ((dbEndTime - dbStartTime) >= dbDelayTime &&
            !(digitalRead(TACTBTN)) && (digitalRead(DBSWITCH))) {
     //getSensorFromDB();
   }
@@ -86,50 +78,4 @@ float avg (float x , float * data)
     sum += data[i];
   average = sum / FILTERDATA;
   return average;
-}
-
-
-//*************************** RTC 함수 ******************************
-void SetRTCTime(String ss) //yyyymmddhhmmss
-{
-  int y, m, d, h, n, s;
-  char buf[5];
-  char dt[15];
-  strcpy(dt, String2char(ss));
-  strncpy(buf, &dt[0], 4);
-  buf[4] = 0;
-  y = atoi(buf);
-  strncpy(buf, &dt[4], 2);
-  buf[2] = 0;
-  m = atoi(buf);
-  strncpy(buf, &dt[6], 2);
-  d = atoi(buf);
-  strncpy(buf, &dt[8], 2);
-  h = atoi(buf);
-  strncpy(buf, &dt[10], 2);
-  n = atoi(buf);
-  strncpy(buf, &dt[12], 2);
-  s = atoi(buf);
-  rtc.adjust(DateTime(y, m, d, h, n, s));
-}
-
-char* String2char(String command) {
-  if (command.length() != 0) {
-    char *p = const_cast<char*>(command.c_str());
-    return p;
-  }
-}
-
-String getRTCTime(RTC_DS1307 RTC) {
-  DateTime cur_dt;
-  cur_dt = RTC.now();
-  String RTCtime =
-    (String)cur_dt.year() + "." +
-    (String)cur_dt.month() + "." +
-    (String)cur_dt.day() + "." +
-    (String)cur_dt.hour() + ":" +
-    (String)cur_dt.minute() + ":" +
-    (String)cur_dt.second();
-
-  return RTCtime;
 }

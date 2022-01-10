@@ -1,0 +1,6 @@
+
+
+-----------------------------v1.01 210618-----------------------------
+granlib::granlib() 수정
+    M1.waitTimeExit = 50; => M1.waitTimeExit = 10;
+    M1.waitAddSensorTimeExit = 30; => M1.waitAddSensorTimeExit = 0;

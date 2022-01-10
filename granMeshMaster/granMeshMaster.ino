@@ -13,7 +13,6 @@
 #include <WiFiAP.h>
 #include <Wire.h>
 #include <Ch376msc.h>
-#include <RTClib.h>
 #include <namedMesh.h>
 #include <Arduino_JSON.h>
 
@@ -41,7 +40,80 @@ granlib _granlib;
 #include <GNet.h>
 GNet _GNet;
 
+//****************** mesh network *************************
+Scheduler  userScheduler; // to control your personal task
+namedMesh  mesh;
 
+String myNodeName;
+String node_name;
+String value;
+String Msg;
+void meshSendMessage(String tonode, String Msg);
+
+
+//********************** Data table ************************
+#define WARNING1 30
+#define WARNING2 30
+#define WARNING3 30
+
+struct dataTable {
+  float tempSensor[3];
+  int sensorWarning[8];
+} DataT;
+
+dataTable DataTtemp;
+
+void initDataTable() {
+  DataT.tempSensor[0] = 0;
+  DataT.tempSensor[1] = 0;
+  DataT.tempSensor[2] = 0;
+  DataT.sensorWarning[0] = 0;
+  DataT.sensorWarning[1] = 0;
+  DataT.sensorWarning[2] = 0;
+  DataT.sensorWarning[3] = 0;
+  DataT.sensorWarning[4] = 0;
+  DataT.sensorWarning[5] = 0;
+  DataT.sensorWarning[6] = 0;
+  DataT.sensorWarning[7] = 0;
+}
+
+//온도값에 따라서 DO8 보드의 릴레이를 작동시킨다.
+void checkWarning() {
+  bool checkChange = false;
+  if (DataT.tempSensor[0] > WARNING1 && DataT.sensorWarning[0] == 0) {
+    DataT.sensorWarning[0] = 1;
+    checkChange = true;
+  } else if (DataT.tempSensor[0] <= WARNING1 && DataT.sensorWarning[0] == 1) {
+    DataT.sensorWarning[0] = 0;
+    checkChange = true;
+  }
+  if (DataT.tempSensor[1] > WARNING2 && DataT.sensorWarning[1] == 0) {
+    DataT.sensorWarning[1] = 1;
+    checkChange = true;
+  } else if (DataT.tempSensor[1] <= WARNING2 && DataT.sensorWarning[1] == 1) {
+    DataT.sensorWarning[1] = 0;
+    checkChange = true;
+  }
+  if (DataT.tempSensor[2] > WARNING3 && DataT.sensorWarning[2] == 0) {
+    DataT.sensorWarning[2] = 1;
+    checkChange = true;
+  } else if (DataT.tempSensor[2] <= WARNING3 && DataT.sensorWarning[2] == 1) {
+    DataT.sensorWarning[2] = 0;
+    checkChange = true;
+  }
+
+  if (checkChange) {
+    meshSendMessage("No004", DO8JsonMsg(&DataT.sensorWarning[0]));
+  }
+}
+
+void printDataTable() {
+  Serial.println("");
+  Serial.println(DataT.tempSensor[0]);
+  Serial.println(DataT.tempSensor[1]);
+  Serial.println(DataT.tempSensor[2]);
+  Serial.println("");
+}
 
 //********************** comm **************************
 char serialBuf[21]; // serial로 들어오는 데이타 저장을 위한 임시버퍼.
@@ -55,128 +127,38 @@ void developmentMode();
 //********************** Timer *************************
 unsigned long dbStartTime;  //DB 작업 시작시간
 unsigned long dbEndTime;    //DB 작업 끝시간
+int dbDelayTime;
 
 //********************** WiFi **************************
 #define ENABLE_SUJO_SELECT 0  //[ 1: sujo01 DB테이블 불러오기 사용 / 0: 미사용 ] 
 #define ENABLE_SENSOR_SETTING_SELECT 1 // [ 1: 센서 세팅값 DB에 저장 사용 / 0: 미사용 ]
 WiFiServer server(80);
 
-//*********************** RTC ***************************
-RTC_DS1307 rtc;
 
-//****************** mesh network *************************
+void pinModeSetup(int boardType) {
+  pinMode(TACTBTN, INPUT_PULLUP);      //  BOOT MODE SELECT BUTTON
+  pinMode(DBSWITCH, INPUT_PULLUP);     //Send Sensor Data Button
 
-Scheduler  userScheduler; // to control your personal task
-namedMesh  mesh;
-
-String myNodeName;
-String node_name;
-String value;
-String Msg;
-
-String obtain_readings_nodeLiveCheck () {
-  //set send json
-  JSONVar jsonReadings;
-  jsonReadings["board_type"] = BOARD_TYPE;
-  jsonReadings["node_name"] = _GNet.getmyNodeName();
-  return JSON.stringify(jsonReadings);
-}
-
-//1000sec 마다 노드 확인
-Task taskSendMessage( TASK_SECOND * 50, TASK_FOREVER, []() {
-  Msg = obtain_readings_nodeLiveCheck();
-  mesh.sendBroadcast(Msg);
-}); // start with a one second interval
-
-//mesh callback
-void receivedCallback( uint32_t from, String &msg ) {
-  //  Serial.printf("Received from %u msg=%s\n", from, msg.c_str());
-
-  Serial.println("");
-  Serial.println(msg.c_str());
-  Serial.println("");
-
-  JSONVar json_object = JSON.parse(msg.c_str());
-  int board_type = json_object["board_type"];
-  const char* strbuf = json_object["node_name"];
-  String node_name = strbuf;
-  const char* strbuf2 = json_object["Data"];
-  String dataString = strbuf2;
-
-
-  Serial.println("[board_type]");
-  Serial.println(board_type);
-  Serial.println("");
-
-  switch (board_type) {
-    // sensor nodeLiveCheck ack msg
-    case 0:
-      Serial.println("");
-      Serial.println(dataString);
-      Serial.println("");
-
-      break;
-    case 5: // Sensor Node AI msg
-      JSONVar data_object = JSON.parse(dataString.c_str());
-      int data_type = data_object["data_type"];
-      Serial.println("[data_type]");
-      Serial.println(data_type);
-      Serial.println("");
-      switch (data_type) {
-        case 1: // temp sensor xx.xx'C
-          value = data_object["value"];
-
-          Serial.println("");
-          Serial.print("Node: ");
-          Serial.println(node_name);
-          Serial.print("Temperature: ");
-          Serial.println(value.toFloat());
-          Serial.println("");
-          break;
-      }
+  switch (boardType) {
+    case 0: // MasterDI4DO4
+      pinMode(TEMP_SENSOR, INPUT_PULLUP);      //  Temp Sensor
+      pinMode(P_PUMP, OUTPUT);             //Send Sensor Data Button LED
+      digitalWrite(P_PUMP, LOW);  // LED Off
       break;
   }
-
 }
-
-void newConnectionCallback(uint32_t nodeId) {
-  Serial.printf("New Connection, nodeId = %u\n", nodeId);
-}
-void changedConnectionCallback() {
-  Serial.printf("Changed connections\n");
-}
-void nodeTimeAdjustedCallback(int32_t offset) {
-  Serial.printf("Adjusted time %u. Offset = %d\n", mesh.getNodeTime(), offset);
-}
-
 
 void setup()
 {
   Serial.begin(115200);
-  pinMode(TACTBTN, INPUT_PULLUP);      //  BOOT MODE SELECT BUTTON
-  pinMode(DBSWITCH, INPUT_PULLUP);     //Send Sensor Data Button
-  pinMode(TEMP_SENSOR, INPUT_PULLUP);      //  Temp Sensor
-  pinMode(P_PUMP, OUTPUT);             //Send Sensor Data Button LED
-  digitalWrite(P_PUMP, LOW);  // LED Off
+  pinModeSetup(BOARD_TYPE);
+
   delay(1000);
 
   //EEPROM SETTING
   _granlib._EEPROM.EEPROM_begin();
-  _granlib._EEPROM.EEPROM_read_All();
-
-  //******************************* RTC ******************************
-  if (! rtc.begin()) {
-    Serial.println("Couldn't find RTC");
-    while (1);
-  }
-  if (! rtc.isrunning()) {
-    Serial.println("RTC is NOT running!");
-    // following line sets the RTC to the date & time this sketch was compiled
-    // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-    // This line sets the RTC with an explicit date & time, for example to set
-    // January 21, 2014 at 3am you would call:
-    // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
-  }
+  _granlib._EEPROM.getEEPROM();
+  dbDelayTime = ((String)_granlib._EEPROM.getDelayTime()).toInt() * 1000;
 
   // WiFi network에 접속
   Serial.println();
@@ -223,27 +205,10 @@ void setup()
   dbStartTime = millis();
   dbEndTime = millis();
 
-  //*********************** mesh network ***************************88
-  //  mesh.setDebugMsgTypes(ERROR | DEBUG | CONNECTION);  // set before init() so that you can see startup messages
-  mesh.setDebugMsgTypes(ERROR | DEBUG );  // set before init() so that you can see startup messages
+  initDataTable();
 
-  //get Data from eeprom
-  _GNet.setMESH_SSID(_granlib._EEPROM.getDBTable());
-  _GNet.setmyNodeName(_granlib._EEPROM.getSerialNumber());
+  initMesh();
 
-  myNodeName = _GNet.getmyNodeName();
-  mesh.init(_GNet.getMESH_SSID(), MESH_PASSWORD, &userScheduler, MESH_PORT);
-  mesh.setName(myNodeName); // This needs to be an unique name!
-  mesh.onChangedConnections([]() {
-    Serial.printf("Changed connection\n");
-  });
-
-  mesh.onReceive(&receivedCallback);
-  mesh.onNewConnection(&newConnectionCallback);
-  mesh.onChangedConnections(&changedConnectionCallback);
-  mesh.onNodeTimeAdjusted(&nodeTimeAdjustedCallback);
-
-  userScheduler.addTask(taskSendMessage);
 }
 
 void loop() {
@@ -271,7 +236,7 @@ void loop() {
   }
 
   // 작업 주기 시간 초기화
-  if ((dbEndTime - dbStartTime) < _granlib._DB.getSensorDelaytime() * 1000 ) {
+  if ((dbEndTime - dbStartTime) < dbDelayTime ) {
     dbEndTime = millis();
   } else {
     dbStartTime = millis();
