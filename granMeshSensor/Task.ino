@@ -7,6 +7,9 @@
 //  10     : 1:1연결 => 통신이 원활하지만 가끔 끊어짐
 //  500    :
 #define SendMeshDelay 500
+
+#define SchmittRange 70
+
 float avg (float x);
 #endif // __AVERAGE_H__
 float saltdata[FILTERDATA];
@@ -30,23 +33,31 @@ void readIO()
     }
   }
   else {
-    //설정한 분해능으로 값을 반올림하기
+    //슈미트 트리거 방식으로 확인 (상위 70% 하위 30%)
+    if (checkSchmitt(value.toFloat() ,temp_value ,_granlib._EEPROM.getDeltaT())) {
 
-    float roundValue = getRoundValue(temp_value, _granlib._EEPROM.getDeltaT());
+      //설정한 분해능으로 값을 반올림하기
+      float roundValue = getRoundValue(temp_value, _granlib._EEPROM.getDeltaT());
 
-    // 일정 수치이상 변화가 일어났을 때에 현재 온도값을 갱신한다.
-    if (roundValue != value.toFloat()) {
-      value = (String)roundValue;
-      Serial.print("change temp over DeltaT : ");
-      Serial.println(value);
+      // 일정 수치이상 변화가 일어났을 때에 현재 온도값을 갱신한다.
+      if (roundValue != value.toFloat()) {
+        value = (String)roundValue;
+        Serial.print("change temp over DeltaT : ");
+        Serial.println(value);
 
-      //온도값을 마스터에 송신
-      if ( (sendMeshEndTime - sendMeshStartTime) >= SendMeshDelay) {
-        meshSendMessage(_GNet.gettoNodeMain(), obtain_readings_sendTempSensor());
-        //메쉬 딜레이 초기화
-        sendMeshStartTime = millis();
-        sendMeshEndTime = millis();
+        //온도값을 마스터에 송신
+        if ( (sendMeshEndTime - sendMeshStartTime) >= SendMeshDelay) {
+          meshSendMessage(_GNet.gettoNodeMain(), obtain_readings_sendTempSensor());
+          rebootFlag = true;
+          //메쉬 딜레이 초기화
+          sendMeshStartTime = millis();
+          sendMeshEndTime = millis();
+        }
       }
+    }else{
+//      Serial.println("");
+//      Serial.println("Schmitt Triger Activate!!");
+//      Serial.println("");
     }
   }
 
@@ -59,6 +70,7 @@ void readIO()
 
     //온도값을 마스터에 송신
     meshSendMessage(_GNet.gettoNodeMain(), obtain_readings_sendTempSensor());
+    rebootFlag = true;
   }
 
 }
@@ -117,6 +129,20 @@ float getRoundValue(float x, float deltaT) {
   float a = x + (deltaT / 2.0);
   int b = (int)(a / deltaT);
   return (float)b * deltaT;
+}
+
+//센서값 떨림 방지를 위한 함수 (슈미트 트리거)
+bool checkSchmitt(float oldValue, float newValue, float deltaT) {
+  if (newValue >= oldValue + (deltaT * SchmittRange / 100.0)) {
+    //관측값 > 현재값 + 분해능 70%
+    return true;
+  }
+  if (newValue <= oldValue - (deltaT * SchmittRange / 100.0)) {
+    //관측값 < 현재값 - 분해능 70%
+    return true;
+  }
+
+  return false;
 }
 
 //Print information

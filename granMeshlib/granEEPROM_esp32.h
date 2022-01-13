@@ -17,25 +17,43 @@ struct PARAM_{
     char WifiSSID[16]; 		//Wifi ssid
     char WifiPWD[16];   	//Wifi pw
     char DBTable[12];       //DB테이블 이름 == 메쉬 이름(MeshID)
-    // char DelayTime[4];  	//딜레이 시간
     int DelayTime;  	    //딜레이 시간
-    float DeltaT;           //센서 변화량 체크값
 } M1 ;
-//*******************************************
 
 void setSerialNumber(char* data);
 void setWifiSSID(char* data);
 void setWifiPWD(char* data);
 void setDBTable(char* data);
 void setDelayTime(int data);
-void setDeltaT(float data);
 
 char* getSerialNumber();
 char* getWifiSSID();
 char* getWifiPWD();
 char* getDBTable();
 int getDelayTime();
+//*******************************************
+
+struct AICT_SENSOR_NODE{
+    float DeltaT;           //센서 변화량 체크값
+} AICT ;
+
+void setDeltaT(float data);
 float getDeltaT();
+void setDefaultValueAICT();
+void printStructAICT();
+
+//**************** DO8 OUTPUT 변수 ***************
+struct DO8DATA{
+    int relayValue[8];
+} DO8 ;
+
+void setDO8relayValue(int num, int data);
+int getDO8relayValue(int num);
+void setDefaultValueDO8();
+void printStructDO8();
+//*******************************************
+
+
 
 void setDefaultValue();
 void printStruct();
@@ -43,8 +61,8 @@ void printStruct();
 //************ EEPROM 관련 함수 *************
 void EEPROM_begin();
 void EEPROM_write(char *data, int startbyte, byte datasize);
-void getEEPROM();
-void putEEPROM();
+void getEEPROM(int boardType);
+void putEEPROM(int boardType);
 //*******************************************
 private:
 

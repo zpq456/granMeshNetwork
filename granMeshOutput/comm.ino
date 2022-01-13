@@ -26,7 +26,7 @@ void readSerial() {
     case 'T': //Delay Time 설정
       stringTemp = &serialBuf[1];
       _granlib._EEPROM.setDelayTime(stringTemp.toInt());
-      Serial.print("Delay Time(T) : "); 
+      Serial.print("Delay Time(T) : ");
       Serial.println(_granlib._EEPROM.getDelayTime());
       break;
     case 'D': //Delta Time 설정
@@ -41,30 +41,35 @@ void readSerial() {
       temp += serialBuf[3] - 48;
       if (temp == 777) {
         _granlib._EEPROM.setDefaultValue();
+        _granlib._EEPROM.setDefaultValueDO8();
         Serial.println("Factory default values are restored.");
         _granlib._EEPROM.printStruct();
+        _granlib._EEPROM.printStructDO8();
       }
       break;
     case '!':   //EEPROM Save
-      _granlib._EEPROM.putEEPROM();
+      _granlib._EEPROM.putEEPROM(BOARD_TYPE);
       //      _granlib._EEPROM.EEPROM_write_All();
       Serial.println("=================================================");
       _granlib._EEPROM.printStruct();
+      _granlib._EEPROM.printStructDO8();
       Serial.println("PARAMETER Saved.");
       break;
     case '@':   //EEPROM Read
       Serial.print("E="); Serial.println('E');
-      _granlib._EEPROM.getEEPROM();
+      _granlib._EEPROM.getEEPROM(BOARD_TYPE);
 
       Serial.println("=================================================");
       Serial.println("PARAMETER Read.");
       _granlib._EEPROM.printStruct();
+      _granlib._EEPROM.printStructDO8();
       Serial.println("@:Read parameter, !:Save parameter, ?:Help, ~:Exit Develop Modes");
       break;
     case '?':
       Serial.println("=================================================");
       Serial.println("Help");
       _granlib._EEPROM.printStruct();
+      _granlib._EEPROM.printStructDO8();
       Serial.println("Txx is 2 digit, Lxxx, Bxxx is 3 digit");
       Serial.println("*777:Restore factory default value.");
       Serial.println("@:Read parameter, !:Save parameter, ?:Help, ~:Exit Develop Modes");

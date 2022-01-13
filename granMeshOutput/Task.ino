@@ -1,11 +1,13 @@
 
 void readIO()
 {
-  //시간이 되면 작업 진행
+  //정해진 시간이 되면 현재값을 마스터에 송신 (생존신고)
   if ((dbEndTime - dbStartTime) >= dbDelayTime &&
       !digitalRead(DBSWITCH)) {
-        
 
+    //아웃풋 설정값을 마스터에 송신
+    meshSendMessage(_GNet.gettoNodeMain(), obtain_readings_nodeLiveCheck_ackmsg());
+    rebootFlag = true;
   }
 
 }

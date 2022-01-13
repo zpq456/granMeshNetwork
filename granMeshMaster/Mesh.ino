@@ -30,6 +30,19 @@ String DO8JsonMsg (int* OutputValue) {
   return JSON.stringify(jsonReadings);
 }
 
+String DO8AckMsg () {
+  JSONVar jsonReadings;
+  jsonReadings["board_type"] = 2; // DO8
+  jsonReadings["node_name"] = _GNet.getmyNodeName();
+
+  //set data json
+  JSONVar jsonDatas;
+  jsonDatas["data_type"] = 1;
+
+  jsonReadings["Data"] = JSON.stringify(jsonDatas);
+  return JSON.stringify(jsonReadings);
+}
+
 //mesh callback
 void receivedCallback( uint32_t from, String &msg ) {
 
@@ -46,6 +59,8 @@ void receivedCallback( uint32_t from, String &msg ) {
 
   JSONVar data_object;
   int data_type;
+  bool dataDifferenceFalg = false;
+  int outputvalue = 0;
 
   switch (board_type) {
     case 0: // sensor nodeLiveCheck ack msg
@@ -64,6 +79,49 @@ void receivedCallback( uint32_t from, String &msg ) {
           }
           checkWarning();
           break;
+        case 2: // Output Node Ack Msg
+          dataString = data_object["Msg"];
+
+          outputvalue = data_object["DO_1"];
+          if (outputvalue != DataT.sensorWarning[0]) {
+            dataDifferenceFalg = true;
+          }
+          outputvalue = data_object["DO_2"];
+          if (outputvalue != DataT.sensorWarning[1]) {
+            dataDifferenceFalg = true;
+          }
+          outputvalue = data_object["DO_3"];
+          if (outputvalue != DataT.sensorWarning[2]) {
+            dataDifferenceFalg = true;
+          }
+          outputvalue = data_object["DO_4"];
+          if (outputvalue != DataT.sensorWarning[3]) {
+            dataDifferenceFalg = true;
+          }
+          outputvalue = data_object["DO_5"];
+          if (outputvalue != DataT.sensorWarning[4]) {
+            dataDifferenceFalg = true;
+          }
+          outputvalue = data_object["DO_6"];
+          if (outputvalue != DataT.sensorWarning[5]) {
+            dataDifferenceFalg = true;
+          }
+          outputvalue = data_object["DO_7"];
+          if (outputvalue != DataT.sensorWarning[6]) {
+            dataDifferenceFalg = true;
+          }
+          outputvalue = data_object["DO_8"];
+          if (outputvalue != DataT.sensorWarning[7]) {
+            dataDifferenceFalg = true;
+          }
+
+          if (dataDifferenceFalg) {
+            meshSendMessage(OUTPUT_NODE, DO8JsonMsg(&DataT.sensorWarning[0]));
+          }
+          else {
+            meshSendMessage(OUTPUT_NODE, DO8AckMsg());
+          }
+          break;
       }
 
       Serial.println("");
@@ -72,9 +130,7 @@ void receivedCallback( uint32_t from, String &msg ) {
 
       break;
     case 2: // DO8 Node ackMsg
-      data_object = JSON.parse(dataString.c_str());
-      data_type = data_object["data_type"];
-
+      meshSendMessage(OUTPUT_NODE, DO8AckMsg());
 
       break;
     case 5: // Sensor Node AI msg
@@ -101,10 +157,10 @@ void receivedCallback( uint32_t from, String &msg ) {
 
 //*****************************************************************************
 
-void initMesh(){
+void initMesh() {
   //*********************** mesh network ***************************
-  mesh.setDebugMsgTypes(ERROR | DEBUG | CONNECTION);  // set before init() so that you can see startup messages
-  //mesh.setDebugMsgTypes(ERROR | DEBUG );  // set before init() so that you can see startup messages
+  //mesh.setDebugMsgTypes(ERROR | DEBUG | CONNECTION);  // set before init() so that you can see startup messages
+  mesh.setDebugMsgTypes(ERROR | DEBUG );  // set before init() so that you can see startup messages
 
   //get Data from eeprom
   _GNet.setMESH_SSID(_granlib._EEPROM.getDBTable());

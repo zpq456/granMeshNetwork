@@ -41,6 +41,8 @@ granlib _granlib;
 GNet _GNet;
 
 //****************** mesh network *************************
+#define OUTPUT_NODE "No004"
+
 Scheduler  userScheduler; // to control your personal task
 namedMesh  mesh;
 
@@ -103,7 +105,7 @@ void checkWarning() {
   }
 
   if (checkChange) {
-    meshSendMessage("No004", DO8JsonMsg(&DataT.sensorWarning[0]));
+    meshSendMessage(OUTPUT_NODE, DO8JsonMsg(&DataT.sensorWarning[0]));
   }
 }
 
@@ -157,7 +159,7 @@ void setup()
 
   //EEPROM SETTING
   _granlib._EEPROM.EEPROM_begin();
-  _granlib._EEPROM.getEEPROM();
+  _granlib._EEPROM.getEEPROM(BOARD_TYPE);
   dbDelayTime = ((String)_granlib._EEPROM.getDelayTime()).toInt() * 1000;
 
   // WiFi network에 접속

@@ -1,12 +1,7 @@
 //****************************** user custom code *******************************
 
-
-String obtain_readings_Output () {
-  //set send json
-  JSONVar jsonReadings;
-  jsonReadings["board_type"] = BOARD_TYPE;
-  jsonReadings["node_name"] = _GNet.getmyNodeName();
-
+//마스터의 노드 확인 답장
+String obtain_readings_nodeLiveCheck_ackmsg () {
   String outputValueArray = "[" + (String)digitalRead(DO_1) +
                             "," + (String)digitalRead(DO_2) +
                             "," + (String)digitalRead(DO_3) +
@@ -17,20 +12,25 @@ String obtain_readings_Output () {
                             "," + (String)digitalRead(DO_8) +
                             "]";
 
-  jsonReadings["Data"] = outputValueArray;
-  return JSON.stringify(jsonReadings);
-}
-
-//마스터의 노드 확인 답장
-String obtain_readings_nodeLiveCheck_ackmsg () {
-  int board_type = 2; // To Master Board
-  String Msg = "OUTPUT " + _GNet.getmyNodeName() + " is activate!!";
-
   //set send json
   JSONVar jsonReadings;
-  jsonReadings["board_type"] = board_type;
+  jsonReadings["board_type"] = 0; //Master ackmsg
   jsonReadings["node_name"] = _GNet.getmyNodeName();
-  jsonReadings["Data"] = Msg;
+
+  //set data json
+  JSONVar jsonDatas;
+  jsonDatas["data_type"] = 2;
+  jsonDatas["DO_1"] = digitalRead(DO_1);
+  jsonDatas["DO_2"] = digitalRead(DO_2);
+  jsonDatas["DO_3"] = digitalRead(DO_3);
+  jsonDatas["DO_4"] = digitalRead(DO_4);
+  jsonDatas["DO_5"] = digitalRead(DO_5);
+  jsonDatas["DO_6"] = digitalRead(DO_6);
+  jsonDatas["DO_7"] = digitalRead(DO_7);
+  jsonDatas["DO_8"] = digitalRead(DO_8);
+  jsonDatas["Msg"] = outputValueArray;
+
+  jsonReadings["Data"] = JSON.stringify(jsonDatas);
   return JSON.stringify(jsonReadings);
 }
 
@@ -56,7 +56,6 @@ void receivedCallback( uint32_t from, String &msg ) {
 
   switch (board_type) {
     case 0:
-      
       break;
     case 2:
       data_object = JSON.parse(dataString.c_str());
@@ -65,61 +64,64 @@ void receivedCallback( uint32_t from, String &msg ) {
       switch (data_type) {
         case 0: // set output value
           outputvalue = data_object["DO_1"];
-          if(outputvalue == 0){
+          if (outputvalue == 0) {
             digitalWrite(DO_1, LOW);
-          }else{
+          } else {
             digitalWrite(DO_1, HIGH);
           }
           outputvalue = data_object["DO_2"];
-          if(outputvalue == 0){
+          if (outputvalue == 0) {
             digitalWrite(DO_2, LOW);
-          }else{
+          } else {
             digitalWrite(DO_2, HIGH);
           }
           outputvalue = data_object["DO_3"];
-          if(outputvalue == 0){
+          if (outputvalue == 0) {
             digitalWrite(DO_3, LOW);
-          }else{
+          } else {
             digitalWrite(DO_3, HIGH);
           }
           outputvalue = data_object["DO_4"];
-          if(outputvalue == 0){
+          if (outputvalue == 0) {
             digitalWrite(DO_4, LOW);
-          }else{
+          } else {
             digitalWrite(DO_4, HIGH);
           }
           outputvalue = data_object["DO_5"];
-          if(outputvalue == 0){
+          if (outputvalue == 0) {
             digitalWrite(DO_5, LOW);
-          }else{
+          } else {
             digitalWrite(DO_5, HIGH);
           }
           outputvalue = data_object["DO_6"];
-          if(outputvalue == 0){
+          if (outputvalue == 0) {
             digitalWrite(DO_6, LOW);
-          }else{
+          } else {
             digitalWrite(DO_6, HIGH);
           }
           outputvalue = data_object["DO_7"];
-          if(outputvalue == 0){
+          if (outputvalue == 0) {
             digitalWrite(DO_7, LOW);
-          }else{
+          } else {
             digitalWrite(DO_7, HIGH);
           }
           outputvalue = data_object["DO_8"];
-          if(outputvalue == 0){
+          if (outputvalue == 0) {
             digitalWrite(DO_8, LOW);
-          }else{
+          } else {
             digitalWrite(DO_8, HIGH);
           }
+          
+          break;
+        case 1: // Ack Master Msg
+          rebootFlag = false;
+          rebootStartTime = millis();
+          rebootEndTime = millis();
+          Serial.println("");
+          Serial.println("reboot disable");
+          Serial.println("");
           break;
       }
-      
-      //ack msg to Master
-      tonode = _GNet.gettoNodeMain();
-      Msg = obtain_readings_nodeLiveCheck_ackmsg();
-      mesh.sendSingle(tonode, Msg);
-
       break;
   }
 }
@@ -128,8 +130,8 @@ void receivedCallback( uint32_t from, String &msg ) {
 
 //*****************************************************************************
 
-void initMesh(){
-    mesh.setDebugMsgTypes(ERROR | DEBUG | CONNECTION);  // set before init() so that you can see startup messages
+void initMesh() {
+  mesh.setDebugMsgTypes(ERROR | DEBUG | CONNECTION);  // set before init() so that you can see startup messages
 
   //get Data from eeprom
   _GNet.setMESH_SSID(_granlib._EEPROM.getDBTable());

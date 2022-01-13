@@ -53,6 +53,8 @@ unsigned long dbStartTime;        //DB 작업 시작시간
 unsigned long dbEndTime;          //DB 작업 끝시간
 unsigned long sendMeshStartTime;  //Send Mesh 지연 시작시간
 unsigned long sendMeshEndTime;    //Send Mesh 지연 끝시간
+unsigned long rebootStartTime;  //Send Mesh 지연 시작시간
+unsigned long rebootEndTime;    //Send Mesh 지연 끝시간
 int dbDelayTime;
 
 
@@ -66,6 +68,8 @@ String node_name;
 String value;
 String Msg;
 void meshSendMessage(String tonode, String Msg);
+#define RebootTime 600//(s)
+bool rebootFlag = false; // 리부팅 트리거
 
 
 
@@ -90,7 +94,7 @@ void setup()
 
   //EEPROM SETTING
   _granlib._EEPROM.EEPROM_begin();
-  _granlib._EEPROM.getEEPROM();
+  _granlib._EEPROM.getEEPROM(BOARD_TYPE);
   dbDelayTime = ((String)_granlib._EEPROM.getDelayTime()).toInt() * 1000;
 
   //센서값 초기화
@@ -113,6 +117,8 @@ void setup()
   dbEndTime = millis();
   sendMeshStartTime = millis();
   sendMeshEndTime = millis();
+  rebootStartTime = millis();
+  rebootEndTime = millis();
 
   //*********************** mesh network ***************************88
   initMesh();
@@ -153,4 +159,15 @@ void loop() {
 
   //메쉬 샌드 주기 시간
   sendMeshEndTime = millis();
+
+  //노드 연결 불안정일 때 스스로 재부팅
+  if (rebootFlag) {
+    rebootEndTime = millis();
+    if ((rebootEndTime - rebootStartTime) >= RebootTime * 1000) {
+      Serial.println("");
+      Serial.println("reboot noard");
+      Serial.println("");
+      ESP.restart();
+    }
+  }
 }

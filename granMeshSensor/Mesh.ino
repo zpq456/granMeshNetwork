@@ -50,7 +50,10 @@ void receivedCallback( uint32_t from, String &msg ) {
   switch (mode_type) {
     // sensor nodeLiveCheck ack msg
     case 0:
-      meshSendMessage(_GNet.gettoNodeMain(),obtain_readings_nodeLiveCheck_ackmsg());
+      rebootFlag = false;
+      rebootStartTime = millis();
+      rebootEndTime = millis();
+      meshSendMessage(_GNet.gettoNodeMain(), obtain_readings_nodeLiveCheck_ackmsg());
       break;
   }
 }
@@ -59,8 +62,8 @@ void receivedCallback( uint32_t from, String &msg ) {
 
 //*****************************************************************************
 
-void initMesh(){
-    mesh.setDebugMsgTypes(ERROR | DEBUG | CONNECTION);  // set before init() so that you can see startup messages
+void initMesh() {
+  mesh.setDebugMsgTypes(ERROR | DEBUG | CONNECTION);  // set before init() so that you can see startup messages
 
   //get Data from eeprom
   _GNet.setMESH_SSID(_granlib._EEPROM.getDBTable());

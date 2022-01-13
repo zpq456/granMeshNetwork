@@ -29,17 +29,12 @@ void granEEPROM_esp32::setDelayTime(int data)
 {
     M1.DelayTime = data;
 }
-void granEEPROM_esp32::setDeltaT(float data)
-{
-    M1.DeltaT = data;
-}
 
 char *granEEPROM_esp32::getSerialNumber() { return &M1.SerialNumber[0]; }
 char *granEEPROM_esp32::getWifiSSID() { return &M1.WifiSSID[0]; }
 char *granEEPROM_esp32::getWifiPWD() { return &M1.WifiPWD[0]; }
 char *granEEPROM_esp32::getDBTable() { return &M1.DBTable[0]; }
 int granEEPROM_esp32::getDelayTime() { return M1.DelayTime; }
-float granEEPROM_esp32::getDeltaT() { return M1.DeltaT; }
 
 void granEEPROM_esp32::setDefaultValue()
 {
@@ -84,8 +79,6 @@ void granEEPROM_esp32::setDefaultValue()
 
     M1.DelayTime = 60;
 
-    M1.DeltaT = 5.0;
-
 }
 
 void granEEPROM_esp32::printStruct()
@@ -100,12 +93,71 @@ void granEEPROM_esp32::printStruct()
     printCharArray(M1.DBTable, 12);
     Serial.print("Delay Time(T) : ");
     Serial.println(M1.DelayTime);
-    Serial.print("Delta Time(D) : ");
-    Serial.println(M1.DeltaT);
     Serial.println("");
 }
 
 
+
+//**************** AUCT INPUT 함수 ***************
+void granEEPROM_esp32::setDeltaT(float data)
+{
+    AICT.DeltaT = data;
+}
+float granEEPROM_esp32::getDeltaT() { return AICT.DeltaT; }
+
+void granEEPROM_esp32::setDefaultValueAICT()
+{
+    AICT.DeltaT = 5.0;
+}
+
+void granEEPROM_esp32::printStructAICT()
+{
+    Serial.print("Delta Time(D) : ");
+    Serial.println(AICT.DeltaT);
+    Serial.println("");
+}
+
+
+
+//**************** DO8 OUTPUT 함수 ***************
+void granEEPROM_esp32::setDO8relayValue(int num, int data){
+    DO8.relayValue[num] = data;
+}
+int granEEPROM_esp32::getDO8relayValue(int num){
+    return DO8.relayValue[num];
+}
+
+void granEEPROM_esp32::setDefaultValueDO8()
+{
+    for(int i=0;i<sizeof(DO8.relayValue);i++){
+        DO8.relayValue[i] = 0;
+    }
+}
+
+void granEEPROM_esp32::printStructDO8()
+{
+    Serial.print("RelayValue    : ");
+    Serial.print("[");
+    Serial.print(DO8.relayValue[0]);
+    Serial.print(",");
+    Serial.print(DO8.relayValue[1]);
+    Serial.print(",");
+    Serial.print(DO8.relayValue[2]);
+    Serial.print(",");
+    Serial.print(DO8.relayValue[3]);
+    Serial.print(",");
+    Serial.print(DO8.relayValue[4]);
+    Serial.print(",");
+    Serial.print(DO8.relayValue[5]);
+    Serial.print(",");
+    Serial.print(DO8.relayValue[6]);
+    Serial.print(",");
+    Serial.print(DO8.relayValue[7]);
+    Serial.println("]");
+    Serial.println("");
+}
+
+//*******************************************
 
 //************ EEPROM 관련 함수 *************
 void granEEPROM_esp32::EEPROM_begin(){
@@ -116,11 +168,31 @@ void granEEPROM_esp32::EEPROM_begin(){
     }
     delay(1000);
 }
-void granEEPROM_esp32::getEEPROM(){ EEPROM.get(0, M1); }
-void granEEPROM_esp32::putEEPROM(){ 
-    EEPROM.put(0, M1);
-    EEPROM.commit(); 
+void granEEPROM_esp32::getEEPROM(int boardType){ 
+    EEPROM.get(0, M1); 
+
+    switch(boardType){
+        case 2:
+            EEPROM.get(sizeof(M1), DO8);
+        break;
+        case 5:
+            EEPROM.get(sizeof(M1), AICT);
+        break;
     }
+}
+void granEEPROM_esp32::putEEPROM(int boardType){ 
+    EEPROM.put(0, M1); 
+
+    switch(boardType){
+        case 2:
+            EEPROM.put(sizeof(M1), DO8); 
+        break;
+        case 5:
+            EEPROM.put(sizeof(M1), AICT); 
+        break;
+    }
+    EEPROM.commit(); 
+}
 
 
 //주소명, 시작바이트, 데이터사이즈
@@ -134,8 +206,8 @@ void granEEPROM_esp32::EEPROM_write(char *data, int startbyte, byte datasize)
     EEPROM.commit();
 }
 
-
 //*******************************************
+
 
 //*******************************************
 //************** Private 함수 ***************

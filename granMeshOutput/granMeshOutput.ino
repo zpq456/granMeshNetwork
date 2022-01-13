@@ -47,6 +47,8 @@ void developmentMode();
 //********************** Timer *************************
 unsigned long dbStartTime;  //DB 작업 시작시간
 unsigned long dbEndTime;    //DB 작업 끝시간
+unsigned long rebootStartTime;  //Send Mesh 지연 시작시간
+unsigned long rebootEndTime;    //Send Mesh 지연 끝시간
 int dbDelayTime;
 
 //****************** mesh network *************************
@@ -59,6 +61,8 @@ String node_name;
 String value;
 String Msg;
 void meshSendMessage(String tonode, String Msg);
+#define RebootTime 600//(s)
+bool rebootFlag = false; // 리부팅 트리거
 
 
 void pinModeSetup(int boardType) {
@@ -76,14 +80,6 @@ void pinModeSetup(int boardType) {
       pinMode(DO_7, OUTPUT);
       pinMode(DO_8, OUTPUT);
 
-      digitalWrite(DO_1, LOW);
-      digitalWrite(DO_2, LOW);
-      digitalWrite(DO_3, LOW);
-      digitalWrite(DO_4, LOW);
-      digitalWrite(DO_5, LOW);
-      digitalWrite(DO_6, LOW);
-      digitalWrite(DO_7, LOW);
-      digitalWrite(DO_8, LOW);
       break;
   }
 }
@@ -96,8 +92,19 @@ void setup()
 
   //EEPROM SETTING
   _granlib._EEPROM.EEPROM_begin();
-  _granlib._EEPROM.getEEPROM();
+  _granlib._EEPROM.getEEPROM(BOARD_TYPE);
   dbDelayTime = ((String)_granlib._EEPROM.getDelayTime()).toInt() * 1000;
+
+  //DO8 output relay value set
+  _granlib._EEPROM.printStructDO8();
+  digitalWrite(DO_1, _granlib._EEPROM.getDO8relayValue(0));
+  digitalWrite(DO_2, _granlib._EEPROM.getDO8relayValue(1));
+  digitalWrite(DO_3, _granlib._EEPROM.getDO8relayValue(2));
+  digitalWrite(DO_4, _granlib._EEPROM.getDO8relayValue(3));
+  digitalWrite(DO_5, _granlib._EEPROM.getDO8relayValue(4));
+  digitalWrite(DO_6, _granlib._EEPROM.getDO8relayValue(5));
+  digitalWrite(DO_7, _granlib._EEPROM.getDO8relayValue(6));
+  digitalWrite(DO_8, _granlib._EEPROM.getDO8relayValue(7));
 
   // devMode 확인
   if (devMode) {
@@ -112,6 +119,8 @@ void setup()
   //타이머 초기화
   dbStartTime = millis();
   dbEndTime = millis();
+  rebootStartTime = millis();
+  rebootEndTime = millis();
 
   //*********************** mesh network ***************************88
   initMesh();
@@ -141,6 +150,28 @@ void loop() {
   } else {
     dbStartTime = millis();
     dbEndTime = millis();
+  }
+
+  //노드 연결 불안정일 때 스스로 재부팅
+  if (rebootFlag) {
+    rebootEndTime = millis();
+    if ((rebootEndTime - rebootStartTime) >= RebootTime * 1000) {
+      //재부팅 전 마지막 릴레이 값을 저장
+      _granlib._EEPROM.setDO8relayValue(0, digitalRead(DO_1));
+      _granlib._EEPROM.setDO8relayValue(1, digitalRead(DO_2));
+      _granlib._EEPROM.setDO8relayValue(2, digitalRead(DO_3));
+      _granlib._EEPROM.setDO8relayValue(3, digitalRead(DO_4));
+      _granlib._EEPROM.setDO8relayValue(4, digitalRead(DO_5));
+      _granlib._EEPROM.setDO8relayValue(5, digitalRead(DO_6));
+      _granlib._EEPROM.setDO8relayValue(6, digitalRead(DO_7));
+      _granlib._EEPROM.setDO8relayValue(7, digitalRead(DO_8));
+      _granlib._EEPROM.putEEPROM(BOARD_TYPE);
+
+      Serial.println("");
+      Serial.println("reboot noard");
+      Serial.println("");
+      ESP.restart();
+    }
   }
 
 }

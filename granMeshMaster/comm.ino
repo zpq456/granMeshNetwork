@@ -46,7 +46,7 @@ void readSerial() {
       }
       break;
     case '!':   //EEPROM Save
-      _granlib._EEPROM.putEEPROM();
+      _granlib._EEPROM.putEEPROM(BOARD_TYPE);
       //      _granlib._EEPROM.EEPROM_write_All();
       Serial.println("=================================================");
       _granlib._EEPROM.printStruct();
@@ -54,7 +54,7 @@ void readSerial() {
       break;
     case '@':   //EEPROM Read
       Serial.print("E="); Serial.println('E');
-      _granlib._EEPROM.getEEPROM();
+      _granlib._EEPROM.getEEPROM(BOARD_TYPE);
 
       Serial.println("=================================================");
       Serial.println("PARAMETER Read.");
