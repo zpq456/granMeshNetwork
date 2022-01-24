@@ -1,13 +1,3 @@
-
-
-/* granMeshNetwork
-    - granWifi를 베이스로 ESP32 Mesh Network (painlessMesh)를 사용
-    - 각 센서부의 데이터를 수집 (Mesh) 하고 외부 DB에 저장 (Wifi) 하기위한 개발
-
-    211216 granWifi에 painlessMesh의 namedMesh를 적용
-
-*/
-
 #include <namedMesh.h>
 #include <Arduino_JSON.h>
 
@@ -27,7 +17,9 @@
 
 //granlib 클래스 선언
 #include <granlib.h>
-granlib _granlib;
+
+granEEPROM_esp32 _EEPROM;
+granConvert _CONVERT;
 
 //board include
 #include <GNet.h>
@@ -91,20 +83,20 @@ void setup()
   delay(1000);
 
   //EEPROM SETTING
-  _granlib._EEPROM.EEPROM_begin();
-  _granlib._EEPROM.getEEPROM(BOARD_TYPE);
-  dbDelayTime = ((String)_granlib._EEPROM.getDelayTime()).toInt() * 1000;
+  _EEPROM.EEPROM_begin();
+  _EEPROM.getEEPROM(BOARD_TYPE);
+  dbDelayTime = ((String)_EEPROM.getDelayTime()).toInt() * 1000;
 
   //DO8 output relay value set
-  _granlib._EEPROM.printStructDO8();
-  digitalWrite(DO_1, _granlib._EEPROM.getDO8relayValue(0));
-  digitalWrite(DO_2, _granlib._EEPROM.getDO8relayValue(1));
-  digitalWrite(DO_3, _granlib._EEPROM.getDO8relayValue(2));
-  digitalWrite(DO_4, _granlib._EEPROM.getDO8relayValue(3));
-  digitalWrite(DO_5, _granlib._EEPROM.getDO8relayValue(4));
-  digitalWrite(DO_6, _granlib._EEPROM.getDO8relayValue(5));
-  digitalWrite(DO_7, _granlib._EEPROM.getDO8relayValue(6));
-  digitalWrite(DO_8, _granlib._EEPROM.getDO8relayValue(7));
+  _EEPROM.printStructDO8();
+  digitalWrite(DO_1, _EEPROM.getDO8relayValue(0));
+  digitalWrite(DO_2, _EEPROM.getDO8relayValue(1));
+  digitalWrite(DO_3, _EEPROM.getDO8relayValue(2));
+  digitalWrite(DO_4, _EEPROM.getDO8relayValue(3));
+  digitalWrite(DO_5, _EEPROM.getDO8relayValue(4));
+  digitalWrite(DO_6, _EEPROM.getDO8relayValue(5));
+  digitalWrite(DO_7, _EEPROM.getDO8relayValue(6));
+  digitalWrite(DO_8, _EEPROM.getDO8relayValue(7));
 
   // devMode 확인
   if (devMode) {
@@ -157,15 +149,15 @@ void loop() {
     rebootEndTime = millis();
     if ((rebootEndTime - rebootStartTime) >= RebootTime * 1000) {
       //재부팅 전 마지막 릴레이 값을 저장
-      _granlib._EEPROM.setDO8relayValue(0, digitalRead(DO_1));
-      _granlib._EEPROM.setDO8relayValue(1, digitalRead(DO_2));
-      _granlib._EEPROM.setDO8relayValue(2, digitalRead(DO_3));
-      _granlib._EEPROM.setDO8relayValue(3, digitalRead(DO_4));
-      _granlib._EEPROM.setDO8relayValue(4, digitalRead(DO_5));
-      _granlib._EEPROM.setDO8relayValue(5, digitalRead(DO_6));
-      _granlib._EEPROM.setDO8relayValue(6, digitalRead(DO_7));
-      _granlib._EEPROM.setDO8relayValue(7, digitalRead(DO_8));
-      _granlib._EEPROM.putEEPROM(BOARD_TYPE);
+      _EEPROM.setDO8relayValue(0, digitalRead(DO_1));
+      _EEPROM.setDO8relayValue(1, digitalRead(DO_2));
+      _EEPROM.setDO8relayValue(2, digitalRead(DO_3));
+      _EEPROM.setDO8relayValue(3, digitalRead(DO_4));
+      _EEPROM.setDO8relayValue(4, digitalRead(DO_5));
+      _EEPROM.setDO8relayValue(5, digitalRead(DO_6));
+      _EEPROM.setDO8relayValue(6, digitalRead(DO_7));
+      _EEPROM.setDO8relayValue(7, digitalRead(DO_8));
+      _EEPROM.putEEPROM(BOARD_TYPE);
 
       Serial.println("");
       Serial.println("reboot noard");

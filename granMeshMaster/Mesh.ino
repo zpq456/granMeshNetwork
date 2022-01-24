@@ -76,6 +76,8 @@ void receivedCallback( uint32_t from, String &msg ) {
             DataT.tempSensor[1] = DataTtemp.tempSensor[1];
           } else if (node_name.compareTo("NS003") == 0) {
             DataT.tempSensor[2] = DataTtemp.tempSensor[2];
+          } else if (node_name.compareTo("NS004") == 0) {
+            DataT.tempSensor[3] = DataTtemp.tempSensor[3];
           }
           checkWarning();
           break;
@@ -146,7 +148,10 @@ void receivedCallback( uint32_t from, String &msg ) {
             DataTtemp.tempSensor[1] = value.toFloat();
           } else if (node_name.compareTo("NS003") == 0) {
             DataTtemp.tempSensor[2] = value.toFloat();
+          } else if (node_name.compareTo("NS004") == 0) {
+            DataTtemp.tempSensor[3] = value.toFloat();
           }
+
           meshSendMessage(node_name, ackJsonMsg());
           break;
       }
@@ -159,12 +164,12 @@ void receivedCallback( uint32_t from, String &msg ) {
 
 void initMesh() {
   //*********************** mesh network ***************************
-  //mesh.setDebugMsgTypes(ERROR | DEBUG | CONNECTION);  // set before init() so that you can see startup messages
+//  mesh.setDebugMsgTypes(ERROR | DEBUG | CONNECTION);  // set before init() so that you can see startup messages
   mesh.setDebugMsgTypes(ERROR | DEBUG );  // set before init() so that you can see startup messages
 
   //get Data from eeprom
-  _GNet.setMESH_SSID(_granlib._EEPROM.getDBTable());
-  _GNet.setmyNodeName(_granlib._EEPROM.getSerialNumber());
+  _GNet.setMESH_SSID(_EEPROM.getDBTable());
+  _GNet.setmyNodeName(_EEPROM.getSerialNumber());
 
   myNodeName = _GNet.getmyNodeName();
   mesh.init(_GNet.getMESH_SSID(), MESH_PASSWORD, &userScheduler, MESH_PORT);

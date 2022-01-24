@@ -134,8 +134,8 @@ void initMesh() {
   mesh.setDebugMsgTypes(ERROR | DEBUG | CONNECTION);  // set before init() so that you can see startup messages
 
   //get Data from eeprom
-  _GNet.setMESH_SSID(_granlib._EEPROM.getDBTable());
-  _GNet.setmyNodeName(_granlib._EEPROM.getSerialNumber());
+  _GNet.setMESH_SSID(_EEPROM.getDBTable());
+  _GNet.setmyNodeName(_EEPROM.getSerialNumber());
 
   myNodeName = _GNet.getmyNodeName();
   mesh.init(_GNet.getMESH_SSID(), MESH_PASSWORD, &userScheduler, MESH_PORT);

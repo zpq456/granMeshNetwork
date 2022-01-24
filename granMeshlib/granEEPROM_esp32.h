@@ -14,9 +14,9 @@ granEEPROM_esp32();
 //************** M1 구조체 변수 **************
 struct PARAM_{
     char SerialNumber[6];	//보드 고유번호 == 노드 이름(NodeName)
-    char WifiSSID[16]; 		//Wifi ssid
-    char WifiPWD[16];   	//Wifi pw
-    char DBTable[12];       //DB테이블 이름 == 메쉬 이름(MeshID)
+    char WifiSSID[17]; 		//Wifi ssid
+    char WifiPWD[17];   	//Wifi pw
+    char DBTable[17];       //DB테이블 이름 == 메쉬 이름(MeshID)
     int DelayTime;  	    //딜레이 시간
 } M1 ;
 

@@ -15,15 +15,15 @@ void granEEPROM_esp32::setSerialNumber(char *data)
 }
 void granEEPROM_esp32::setWifiSSID(char *data)
 {
-    setCharArrayData(M1.WifiSSID, data, 16);
+    setCharArrayData(M1.WifiSSID, data, 17);
 }
 void granEEPROM_esp32::setWifiPWD(char *data)
 {
-    setCharArrayData(M1.WifiPWD, data, 16);
+    setCharArrayData(M1.WifiPWD, data, 17);
 }
 void granEEPROM_esp32::setDBTable(char *data)
 {
-    setCharArrayData(M1.DBTable, data, 12);
+    setCharArrayData(M1.DBTable, data, 17);
 }
 void granEEPROM_esp32::setDelayTime(int data)
 {
@@ -55,7 +55,10 @@ void granEEPROM_esp32::setDefaultValue()
     M1.WifiSSID[5] = 'e';
     M1.WifiSSID[6] = 'c';
     M1.WifiSSID[7] = 'h'; 
-    M1.WifiSSID[8] = '\0';
+    M1.WifiSSID[8] = '2'; 
+    M1.WifiSSID[9] = '.'; 
+    M1.WifiSSID[10] = '4'; 
+    M1.WifiSSID[11] = '\0';
 
     //37851357
     M1.WifiPWD[0] = '3';
@@ -69,13 +72,19 @@ void granEEPROM_esp32::setDefaultValue()
     M1.WifiPWD[8] = '\0';
 
     //Sujo1
-    M1.DBTable[0] = 's';
-    M1.DBTable[1] = 'u';
-    M1.DBTable[2] = 'j';
-    M1.DBTable[3] = 'o';
-    M1.DBTable[4] = '0';
-    M1.DBTable[5] = '1';
-    M1.DBTable[6] = '\0';
+    M1.DBTable[0] = 'M';
+    M1.DBTable[1] = 'a';
+    M1.DBTable[2] = 's';
+    M1.DBTable[3] = 't';
+    M1.DBTable[4] = 'e';
+    M1.DBTable[5] = 'r';
+    M1.DBTable[6] = 'D';
+    M1.DBTable[7] = 'I';
+    M1.DBTable[8] = '4';
+    M1.DBTable[9] = 'D';
+    M1.DBTable[10] = 'O';
+    M1.DBTable[11] = '4';
+    M1.DBTable[12] = '\0';
 
     M1.DelayTime = 60;
 
@@ -86,11 +95,11 @@ void granEEPROM_esp32::printStruct()
     Serial.print("SerialNumber(S)    : ");
     printCharArray(M1.SerialNumber, 6);
     Serial.print("Wifi SSID(I)       : ");
-    printCharArray(M1.WifiSSID, 15);
+    printCharArray(M1.WifiSSID, 17);
     Serial.print("Wifi Passward(P)   : ");
-    printCharArray(M1.WifiPWD, 15);
+    printCharArray(M1.WifiPWD, 17);
     Serial.print("Wifi DB Table Name(N) : ");
-    printCharArray(M1.DBTable, 12);
+    printCharArray(M1.DBTable, 17);
     Serial.print("Delay Time(T) : ");
     Serial.println(M1.DelayTime);
     Serial.println("");

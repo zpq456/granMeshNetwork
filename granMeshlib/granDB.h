@@ -30,6 +30,10 @@ public:
     String phpName_update_sensor_setting = "update-sensor-setting.php";
     String phpName_select_sensor_setting = "select-sensor-setting.php";
 
+
+    // DB Connect Info for MasterDI4DO4
+    String phpName_update_MasterDi4Do4 = "/post-kimchi-data.php";
+ 
     String apiKeyValue = "tPmAT5Ab3j7F9";
     String sensorReadings;
 
@@ -43,6 +47,8 @@ public:
     void setSensorTablename(String data);
     void setSensorDelaytime(int data);
 
+    void insertDBData_MasterDI4DO4(String serial, String tableName, float temp1, float temp2, float temp3, float temp4);
+    
     String getSensorReadings();
     String getSensorSerial();
     String getSensorTablename();

@@ -11,16 +11,5 @@
 #include "granEEPROM_esp32.h"
 #include "granConvert.h"
 
-class granlib
-{
-public:
-    granEEPROM_esp32 _EEPROM;
-    granDB _DB;
-    granConvert _CONVERT;
-
-    granlib();
-
-private:
-};
 
 #endif

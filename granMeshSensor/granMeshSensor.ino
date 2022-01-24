@@ -1,13 +1,3 @@
-
-
-/* granMeshNetwork
-    - granWifi를 베이스로 ESP32 Mesh Network (painlessMesh)를 사용
-    - 각 센서부의 데이터를 수집 (Mesh) 하고 외부 DB에 저장 (Wifi) 하기위한 개발
-
-    211216 granWifi에 painlessMesh의 namedMesh를 적용
-
-*/
-
 #include <namedMesh.h>
 #include <Arduino_JSON.h>
 #include <math.h>
@@ -28,7 +18,10 @@
 
 //granlib 클래스 선언
 #include <granlib.h>
-granlib _granlib;
+
+granEEPROM_esp32 _EEPROM;
+granConvert _CONVERT;
+
 
 //board include
 #include <GNet.h>
@@ -93,9 +86,9 @@ void setup()
   delay(1000);
 
   //EEPROM SETTING
-  _granlib._EEPROM.EEPROM_begin();
-  _granlib._EEPROM.getEEPROM(BOARD_TYPE);
-  dbDelayTime = ((String)_granlib._EEPROM.getDelayTime()).toInt() * 1000;
+  _EEPROM.EEPROM_begin();
+  _EEPROM.getEEPROM(BOARD_TYPE);
+  dbDelayTime = ((String)_EEPROM.getDelayTime()).toInt() * 1000;
 
   //센서값 초기화
   value = (String)GetTemperature(analogRead(TEMP_SENSOR));

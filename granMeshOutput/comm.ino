@@ -8,68 +8,68 @@ void readSerial() {
 
   switch (serialBuf[0]) {
     case 'S': //SerialNumber 설정
-      _granlib._EEPROM.setSerialNumber(&serialBuf[1]);
-      Serial.print("SerialNumber(S)    : "); printCharArray(_granlib._EEPROM.getSerialNumber(), 6);
+      _EEPROM.setSerialNumber(&serialBuf[1]);
+      Serial.print("SerialNumber(S)    : "); printCharArray(_EEPROM.getSerialNumber(), 6);
       break;
     case 'I': //Wifi ID 설정
-      _granlib._EEPROM.setWifiSSID(&serialBuf[1]);
-      Serial.print("Wifi SSID(I)       : "); printCharArray(_granlib._EEPROM.getWifiSSID(), 16);
+      _EEPROM.setWifiSSID(&serialBuf[1]);
+      Serial.print("Wifi SSID(I)       : "); printCharArray(_EEPROM.getWifiSSID(), 17);
       break;
     case 'P': //Wifi PW 설정
-      _granlib._EEPROM.setWifiPWD(&serialBuf[1]);
-      Serial.print("Wifi Passward(P)   : "); printCharArray(_granlib._EEPROM.getWifiPWD(), 16);
+      _EEPROM.setWifiPWD(&serialBuf[1]);
+      Serial.print("Wifi Passward(P)   : "); printCharArray(_EEPROM.getWifiPWD(), 17);
       break;
     case 'N': //Wifi Name 설정
-      _granlib._EEPROM.setDBTable(&serialBuf[1]);
-      Serial.print("Wifi DB Table Name(N) : "); printCharArray(_granlib._EEPROM.getDBTable(), 16);
+      _EEPROM.setDBTable(&serialBuf[1]);
+      Serial.print("Wifi DB Table Name(N) : "); printCharArray(_EEPROM.getDBTable(), 17);
       break;
     case 'T': //Delay Time 설정
       stringTemp = &serialBuf[1];
-      _granlib._EEPROM.setDelayTime(stringTemp.toInt());
+      _EEPROM.setDelayTime(stringTemp.toInt());
       Serial.print("Delay Time(T) : ");
-      Serial.println(_granlib._EEPROM.getDelayTime());
+      Serial.println(_EEPROM.getDelayTime());
       break;
     case 'D': //Delta Time 설정
       stringTemp = &serialBuf[1];
-      _granlib._EEPROM.setDeltaT(stringTemp.toFloat());
+      _EEPROM.setDeltaT(stringTemp.toFloat());
       Serial.print("Delta Time(D) : ");
-      Serial.println(_granlib._EEPROM.getDeltaT());
+      Serial.println(_EEPROM.getDeltaT());
       break;
     case '*': // Restore default value
       temp  = (serialBuf[1] - 48) * 100;
       temp += (serialBuf[2] - 48) * 10;
       temp += serialBuf[3] - 48;
       if (temp == 777) {
-        _granlib._EEPROM.setDefaultValue();
-        _granlib._EEPROM.setDefaultValueDO8();
+        _EEPROM.setDefaultValue();
+        _EEPROM.setDefaultValueDO8();
         Serial.println("Factory default values are restored.");
-        _granlib._EEPROM.printStruct();
-        _granlib._EEPROM.printStructDO8();
+        _EEPROM.printStruct();
+        _EEPROM.printStructDO8();
       }
       break;
     case '!':   //EEPROM Save
-      _granlib._EEPROM.putEEPROM(BOARD_TYPE);
-      //      _granlib._EEPROM.EEPROM_write_All();
+      _EEPROM.putEEPROM(BOARD_TYPE);
+      //      _EEPROM.EEPROM_write_All();
       Serial.println("=================================================");
-      _granlib._EEPROM.printStruct();
-      _granlib._EEPROM.printStructDO8();
+      _EEPROM.printStruct();
+      _EEPROM.printStructDO8();
       Serial.println("PARAMETER Saved.");
       break;
     case '@':   //EEPROM Read
       Serial.print("E="); Serial.println('E');
-      _granlib._EEPROM.getEEPROM(BOARD_TYPE);
+      _EEPROM.getEEPROM(BOARD_TYPE);
 
       Serial.println("=================================================");
       Serial.println("PARAMETER Read.");
-      _granlib._EEPROM.printStruct();
-      _granlib._EEPROM.printStructDO8();
+      _EEPROM.printStruct();
+      _EEPROM.printStructDO8();
       Serial.println("@:Read parameter, !:Save parameter, ?:Help, ~:Exit Develop Modes");
       break;
     case '?':
       Serial.println("=================================================");
       Serial.println("Help");
-      _granlib._EEPROM.printStruct();
-      _granlib._EEPROM.printStructDO8();
+      _EEPROM.printStruct();
+      _EEPROM.printStructDO8();
       Serial.println("Txx is 2 digit, Lxxx, Bxxx is 3 digit");
       Serial.println("*777:Restore factory default value.");
       Serial.println("@:Read parameter, !:Save parameter, ?:Help, ~:Exit Develop Modes");

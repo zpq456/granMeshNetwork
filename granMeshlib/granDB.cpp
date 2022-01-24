@@ -163,10 +163,6 @@ void granDB::parsingSensorSettingJson(){
 
 }
 
-
-
-
-
 void granDB::setSensorReadings(String data) {sensorReadings = data;}
 void granDB::setSensorSerial(String data) {sensor_setting_struct.serial = data;}
 void granDB::setSensorTablename(String data){sensor_setting_struct.tablename = data;}
@@ -176,6 +172,51 @@ String granDB::getSensorReadings() {return sensorReadings;}
 String granDB::getSensorSerial(){return sensor_setting_struct.serial;}
 String granDB::getSensorTablename(){return sensor_setting_struct.tablename;}
 int granDB::getSensorDelaytime(){return sensor_setting_struct.delaytime;}
+
+
+
+//******************************* MasterDI4DO4 ************************************************
+void granDB::insertDBData_MasterDI4DO4(String serial, String tableName, float temp1, float temp2, float temp3, float temp4){
+    WiFiClient client;
+    HTTPClient http;
+
+    String serverName = domainName + tableName + phpName_update_MasterDi4Do4;
+    
+    // Your Domain name with URL path or IP address with path
+    http.begin(client, serverName);
+
+    // Specify content-type header
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+   // Prepare your HTTP POST request data
+    String httpRequestData = "api_key=" + apiKeyValue + 
+                             "&serial=" + serial + 
+                             "&temp1=" + temp1 + 
+                             "&temp2=" + temp2 + 
+                             "&temp3=" + temp3 + 
+                             "&temp4=" + temp4 + 
+                             "";
+    Serial.print("httpRequestData: ");
+    Serial.println(httpRequestData);
+
+    int httpResponseCode = http.POST(httpRequestData);
+
+    if (httpResponseCode > 0)
+    {
+        Serial.print("HTTP Response code: ");
+        Serial.println(httpResponseCode);
+    }
+    else
+    {
+        Serial.print("Error code: ");
+        Serial.println(httpResponseCode);
+    }
+    // Free resources
+    http.end();
+    client.stop();
+}
+
+
 
 //*******************************************
 //************** Private 함수 ***************

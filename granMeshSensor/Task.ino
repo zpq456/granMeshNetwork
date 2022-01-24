@@ -34,10 +34,10 @@ void readIO()
   }
   else {
     //슈미트 트리거 방식으로 확인 (상위 70% 하위 30%)
-    if (checkSchmitt(value.toFloat() ,temp_value ,_granlib._EEPROM.getDeltaT())) {
+    if (checkSchmitt(value.toFloat() ,temp_value ,_EEPROM.getDeltaT())) {
 
       //설정한 분해능으로 값을 반올림하기
-      float roundValue = getRoundValue(temp_value, _granlib._EEPROM.getDeltaT());
+      float roundValue = getRoundValue(temp_value, _EEPROM.getDeltaT());
 
       // 일정 수치이상 변화가 일어났을 때에 현재 온도값을 갱신한다.
       if (roundValue != value.toFloat()) {

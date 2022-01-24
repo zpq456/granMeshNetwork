@@ -13,13 +13,7 @@ void readIO()
   //시간이 되면 작업 진행
   if ((dbEndTime - dbStartTime) >= dbDelayTime &&
       !digitalRead(DBSWITCH)) {
-
-    //********************** send order output ***********************
-
-    //print DataTable
-    Unit1.write(0x02);
-    Unit1.write((uint8_t *) &DataT, sizeof DataT);
-    printDataTable();
+        
   }
 }
 
@@ -42,6 +36,8 @@ void developmentMode() {
     //getSensorFromDB();
   }
 
+  //waiting AP Message
+  //checkAPMessage();
 }
 
 double GetTemperature(int v)

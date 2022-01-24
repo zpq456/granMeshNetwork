@@ -1,5 +1,7 @@
-#include <namedMesh.h>
-#include <Arduino_JSON.h>
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <WiFiAP.h>
+#include <Wire.h>
 
 #define MAX_DATE    128
 #define HEATER  15    //
@@ -20,24 +22,12 @@
 #include <granlib.h>
 
 granEEPROM_esp32 _EEPROM;
+granDB _DB;
 granConvert _CONVERT;
 
 //board include
 #include <GNet.h>
 GNet _GNet;
-
-//****************** mesh network *************************
-#define OUTPUT_NODE "No004"
-
-Scheduler  userScheduler; // to control your personal task
-namedMesh  mesh;
-
-String myNodeName;
-String node_name;
-String value;
-String Msg;
-void meshSendMessage(String tonode, String Msg);
-
 
 //********************** Data table ************************
 #define WARNING1 30
@@ -67,43 +57,6 @@ void initDataTable() {
   DataT.sensorWarning[7] = 0;
 }
 
-//온도값에 따라서 DO8 보드의 릴레이를 작동시킨다.
-void checkWarning() {
-  bool checkChange = false;
-  if (DataT.tempSensor[0] > WARNING1 && DataT.sensorWarning[0] == 0) {
-    DataT.sensorWarning[0] = 1;
-    checkChange = true;
-  } else if (DataT.tempSensor[0] <= WARNING1 && DataT.sensorWarning[0] == 1) {
-    DataT.sensorWarning[0] = 0;
-    checkChange = true;
-  }
-  if (DataT.tempSensor[1] > WARNING2 && DataT.sensorWarning[1] == 0) {
-    DataT.sensorWarning[1] = 1;
-    checkChange = true;
-  } else if (DataT.tempSensor[1] <= WARNING2 && DataT.sensorWarning[1] == 1) {
-    DataT.sensorWarning[1] = 0;
-    checkChange = true;
-  }
-  if (DataT.tempSensor[2] > WARNING3 && DataT.sensorWarning[2] == 0) {
-    DataT.sensorWarning[2] = 1;
-    checkChange = true;
-  } else if (DataT.tempSensor[2] <= WARNING3 && DataT.sensorWarning[2] == 1) {
-    DataT.sensorWarning[2] = 0;
-    checkChange = true;
-  }
-  if (DataT.tempSensor[3] > WARNING4 && DataT.sensorWarning[3] == 0) {
-    DataT.sensorWarning[3] = 1;
-    checkChange = true;
-  } else if (DataT.tempSensor[3] <= WARNING4 && DataT.sensorWarning[3] == 1) {
-    DataT.sensorWarning[3] = 0;
-    checkChange = true;
-  }
-
-  if (checkChange) {
-    meshSendMessage(OUTPUT_NODE, DO8JsonMsg(&DataT.sensorWarning[0]));
-  }
-}
-
 void printDataTable() {
   Serial.println("");
   Serial.println(DataT.tempSensor[0]);
@@ -127,29 +80,34 @@ unsigned long dbStartTime;  //DB 작업 시작시간
 unsigned long dbEndTime;    //DB 작업 끝시간
 int dbDelayTime;
 
+//********************** WiFi **************************
+#define ENABLE_SUJO_SELECT 0  //[ 1: sujo01 DB테이블 불러오기 사용 / 0: 미사용 ] 
+#define ENABLE_SENSOR_SETTING_SELECT 1 // [ 1: 센서 세팅값 DB에 저장 사용 / 0: 미사용 ]
+WiFiServer server(80);
+
 
 void pinModeSetup(int boardType) {
   pinMode(TACTBTN, INPUT_PULLUP);      //  BOOT MODE SELECT BUTTON
   pinMode(DBSWITCH, INPUT_PULLUP);     //Send Sensor Data Button
 
   switch (boardType) {
-    case 0: // MasterDI4DO4
-      pinMode(TEMP_SENSOR, INPUT_PULLUP);      //  Temp Sensor
+    case 6: // MasterWifi
       pinMode(P_PUMP, OUTPUT);             //Send Sensor Data Button LED
       digitalWrite(P_PUMP, LOW);  // LED Off
       break;
   }
 }
 
+
 //********************* HardwareSerial ***************************
-          HardwareSerial Unit1(1);
+HardwareSerial Unit2(1);
 
 void setup()
 {
   Serial.begin(115200);
   pinModeSetup(BOARD_TYPE);
-  
-            Unit1.begin(115200,SERIAL_8N1, 17, 16);
+
+  Unit2.begin(115200, SERIAL_8N1, 17, 16);
 
   delay(1000);
 
@@ -158,13 +116,52 @@ void setup()
   _EEPROM.getEEPROM(BOARD_TYPE);
   dbDelayTime = ((String)_EEPROM.getDelayTime()).toInt() * 1000;
 
+  // WiFi network에 접속
+  Serial.println();
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(_EEPROM.getWifiSSID());
+  Serial.println(_EEPROM.getWifiPWD());
+
+  WiFi.begin(_EEPROM.getWifiSSID(), _EEPROM.getWifiPWD());
+  Serial.println(WiFi.macAddress());
+
+  //WiFi 연결 확인 (10초동안 응답이 없으면 EEPROM 설정으로 넘어감
+  int wifiCounter = 0;
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print("WIFI RSSI : ");
+    Serial.println(WiFi.RSSI());
+    wifiCounter++;
+    if (wifiCounter > 10000) { // wait 60s for wifi connect
+      //devMode = 1; //set develop mode flag
+      break;
+    }
+  }
+  if (WiFi.status() == WL_CONNECTED) {
+    //getSensorFromDB();
+  }
+
+  // devMode 확인
+  if (devMode) {
+    Serial.println("---------------------------------------------------------");
+    Serial.println("Please Set EEPROM Data and Restart Arduino Board");
+    Serial.println("---------------------------------------------------------");
+  }
+  else { // 정상작동
+    Serial.println("");
+    Serial.println("WiFi connected.");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+
+    server.begin();
+  }
+
   //타이머 초기화
   dbStartTime = millis();
   dbEndTime = millis();
 
   initDataTable();
 
-  initMesh();
 
 }
 
@@ -175,9 +172,26 @@ void loop() {
   }
   else {
     readIO();
-    mesh.update();
     devModeMSG = 0; //Serial 설정 안내문구
   }
+
+  if (Unit2.available()) {
+    if (Unit2.read() == 0x02) {
+      Unit2.readBytes((uint8_t *) &DataT, sizeof DataT );
+
+      //DB에 데이터를 송신
+      printDataTable();
+      _DB.insertDBData_MasterDI4DO4(
+        _EEPROM.getSerialNumber(),
+        _EEPROM.getDBTable(),
+        DataT.tempSensor[0],
+        DataT.tempSensor[1],
+        DataT.tempSensor[2],
+        DataT.tempSensor[3]
+      );
+    }
+  }
+
 
   //Send Sensor Data Button LED Check
   if (!(digitalRead(DBSWITCH))) {
