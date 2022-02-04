@@ -60,8 +60,10 @@ bool rebootFlag = false; // 리부팅 트리거
 void pinModeSetup(int boardType) {
   pinMode(TACTBTN, INPUT_PULLUP);      //  BOOT MODE SELECT BUTTON
   pinMode(DBSWITCH, INPUT_PULLUP);     //Send Sensor Data Button
+  pinMode(LED_BOARD_LEVEL, OUTPUT);
 
   switch (boardType) {
+
     case 2: // DO8
       pinMode(DO_1, OUTPUT);
       pinMode(DO_2, OUTPUT);
@@ -128,6 +130,12 @@ void loop() {
     readIO();
     mesh.update();
     devModeMSG = 0; //Serial 설정 안내문구
+  }
+
+  if (!digitalRead(DBSWITCH)) {
+    digitalWrite(LED_BOARD_LEVEL, true);
+  } else {
+    digitalWrite(LED_BOARD_LEVEL, false);
   }
 
   //Develop Mode Start Check

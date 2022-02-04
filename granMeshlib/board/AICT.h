@@ -2,7 +2,9 @@
 #ifndef AICT_h
 #define AICT_h
 
-#define DI_1 63
+#define LED_BOARD_LEVEL 18
+
+#define DI_1 36
 
 #define BOARD_NAME "AICT"
 

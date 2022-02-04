@@ -36,7 +36,7 @@ char *granEEPROM_esp32::getWifiPWD() { return &M1.WifiPWD[0]; }
 char *granEEPROM_esp32::getDBTable() { return &M1.DBTable[0]; }
 int granEEPROM_esp32::getDelayTime() { return M1.DelayTime; }
 
-void granEEPROM_esp32::setDefaultValue()
+void granEEPROM_esp32::setDefaultValue(int boardType)
 {
     //MA001
     M1.SerialNumber[0] = 'M';
@@ -88,9 +88,21 @@ void granEEPROM_esp32::setDefaultValue()
 
     M1.DelayTime = 60;
 
+    switch(boardType){
+        case 0:
+            setDefaultValueMasterDI4DO4();
+        break;
+        case 2:
+            setDefaultValueDO8();
+        break;
+        case 6:
+            setDefaultValueAICT();
+        break;
+    }
+
 }
 
-void granEEPROM_esp32::printStruct()
+void granEEPROM_esp32::printStruct(int boardType)
 {
     Serial.print("SerialNumber(S)    : ");
     printCharArray(M1.SerialNumber, 6);
@@ -103,6 +115,18 @@ void granEEPROM_esp32::printStruct()
     Serial.print("Delay Time(T) : ");
     Serial.println(M1.DelayTime);
     Serial.println("");
+
+    switch(boardType){
+        case 0:
+            printStructMasterDI4DO4();
+        break;
+        case 2:
+            printStructDO8();
+        break;
+        case 6:
+            printStructAICT();
+        break;
+    }
 }
 
 
@@ -168,6 +192,63 @@ void granEEPROM_esp32::printStructDO8()
 
 //*******************************************
 
+//**************** MasterDI4DO4 함수 ***************
+void granEEPROM_esp32::setMasterDI4DO4relayValue(int node, int rellay, int data){
+    MasterDI4DO4.sensorWarning[node][rellay] = data;
+}
+int granEEPROM_esp32::getMasterDI4DO4relayValue(int node, int rellay){
+    return MasterDI4DO4.sensorWarning[node][rellay];
+}
+int *granEEPROM_esp32::getMasterDI4DO4relayAddress(int node){
+    return &MasterDI4DO4.sensorWarning[node][0];
+}
+void granEEPROM_esp32::setMasterDI4DO4inputValue(int num, float data){
+    MasterDI4DO4.tempSensor[num] = data;
+}
+float granEEPROM_esp32::getMasterDI4DO4inputValue(int num){
+    return MasterDI4DO4.tempSensor[num];
+}
+
+void granEEPROM_esp32::setDefaultValueMasterDI4DO4()
+{
+    MasterDI4DO4.tempSensor[0] = 0;
+    MasterDI4DO4.tempSensor[1] = 0;
+    MasterDI4DO4.tempSensor[2] = 0;
+    MasterDI4DO4.tempSensor[3] = 0;
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 8; j++) {
+            MasterDI4DO4.sensorWarning[i][j] = 0;
+        }
+    }
+}
+
+void granEEPROM_esp32::printStructMasterDI4DO4()
+{
+    Serial.println("");
+    Serial.println(MasterDI4DO4.tempSensor[0]);
+    Serial.println(MasterDI4DO4.tempSensor[1]);
+    Serial.println(MasterDI4DO4.tempSensor[2]);
+    Serial.println(MasterDI4DO4.tempSensor[3]);
+    Serial.println("");
+
+    Serial.println("RelayValue    : ");
+    for (int i = 0; i < 4; i++) {
+        Serial.print("[ ");
+        for (int j = 0; j < 8; j++) {
+            Serial.print(MasterDI4DO4.sensorWarning[i][j]);
+            Serial.print(" ");
+        }
+        Serial.println("]");
+    }
+    
+    Serial.println("Change Relay Value(C) [C NodeName.RelayNum.value / ex) CNo001.1.0]");
+    Serial.println("Order  Relay Value(O) [O NodeName.RelayNum.value / ex) ONo001.1.0]");
+    Serial.println("");
+
+}
+
+//*******************************************
+
 //************ EEPROM 관련 함수 *************
 void granEEPROM_esp32::EEPROM_begin(){
     if (!EEPROM.begin(EEPROM_SIZE))
@@ -181,10 +262,13 @@ void granEEPROM_esp32::getEEPROM(int boardType){
     EEPROM.get(0, M1); 
 
     switch(boardType){
+        case 0:
+            EEPROM.get(sizeof(M1), MasterDI4DO4);
+        break;
         case 2:
             EEPROM.get(sizeof(M1), DO8);
         break;
-        case 5:
+        case 6:
             EEPROM.get(sizeof(M1), AICT);
         break;
     }
@@ -193,10 +277,13 @@ void granEEPROM_esp32::putEEPROM(int boardType){
     EEPROM.put(0, M1); 
 
     switch(boardType){
+        case 0:
+            EEPROM.put(sizeof(M1), MasterDI4DO4);
+        break;
         case 2:
             EEPROM.put(sizeof(M1), DO8); 
         break;
-        case 5:
+        case 6:
             EEPROM.put(sizeof(M1), AICT); 
         break;
     }

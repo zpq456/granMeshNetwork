@@ -50,9 +50,16 @@ void receivedCallback( uint32_t from, String &msg ) {
   String dataString = strbuf2;
   String tonode;
 
+  String donum;
+  String runOutput;
+
   JSONVar data_object;
   int data_type;
   int outputvalue = 0;
+
+  Serial.println("");
+  Serial.println("Start receivedCallback");
+  Serial.println("");
 
   switch (board_type) {
     case 0:
@@ -111,7 +118,7 @@ void receivedCallback( uint32_t from, String &msg ) {
           } else {
             digitalWrite(DO_8, HIGH);
           }
-          
+
           break;
         case 1: // Ack Master Msg
           rebootFlag = false;
@@ -120,6 +127,32 @@ void receivedCallback( uint32_t from, String &msg ) {
           Serial.println("");
           Serial.println("reboot disable");
           Serial.println("");
+          break;
+        case 2: // Master Serial Controller - DO8SoloJsonMsg
+          rebootFlag = false;
+          rebootStartTime = millis();
+          rebootEndTime = millis();
+          Serial.println("");
+          Serial.println("reboot disable");
+          Serial.println("");
+
+          donum = data_object["DO_Num"];
+          runOutput = data_object["DO_Value"];
+
+          switch (donum.toInt()) {
+            case 1:
+              digitalWrite(DO_1, runOutput.toInt());
+              break;
+            case 2:
+              digitalWrite(DO_2, runOutput.toInt());
+              break;
+            case 3:
+              digitalWrite(DO_3, runOutput.toInt());
+              break;
+            case 4:
+              digitalWrite(DO_4, runOutput.toInt());
+              break;
+          }
           break;
       }
       break;
@@ -131,7 +164,8 @@ void receivedCallback( uint32_t from, String &msg ) {
 //*****************************************************************************
 
 void initMesh() {
-  mesh.setDebugMsgTypes(ERROR | DEBUG | CONNECTION);  // set before init() so that you can see startup messages
+  //mesh.setDebugMsgTypes(ERROR | DEBUG | CONNECTION);  // set before init() so that you can see startup messages
+  mesh.setDebugMsgTypes(ERROR | DEBUG);  // set before init() so that you can see startup messages
 
   //get Data from eeprom
   _GNet.setMESH_SSID(_EEPROM.getDBTable());

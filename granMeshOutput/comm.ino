@@ -40,19 +40,16 @@ void readSerial() {
       temp += (serialBuf[2] - 48) * 10;
       temp += serialBuf[3] - 48;
       if (temp == 777) {
-        _EEPROM.setDefaultValue();
-        _EEPROM.setDefaultValueDO8();
+        _EEPROM.setDefaultValue(BOARD_TYPE);
         Serial.println("Factory default values are restored.");
-        _EEPROM.printStruct();
-        _EEPROM.printStructDO8();
+        _EEPROM.printStruct(BOARD_TYPE);
       }
       break;
     case '!':   //EEPROM Save
       _EEPROM.putEEPROM(BOARD_TYPE);
       //      _EEPROM.EEPROM_write_All();
       Serial.println("=================================================");
-      _EEPROM.printStruct();
-      _EEPROM.printStructDO8();
+      _EEPROM.printStruct(BOARD_TYPE);
       Serial.println("PARAMETER Saved.");
       break;
     case '@':   //EEPROM Read
@@ -61,15 +58,13 @@ void readSerial() {
 
       Serial.println("=================================================");
       Serial.println("PARAMETER Read.");
-      _EEPROM.printStruct();
-      _EEPROM.printStructDO8();
+      _EEPROM.printStruct(BOARD_TYPE);
       Serial.println("@:Read parameter, !:Save parameter, ?:Help, ~:Exit Develop Modes");
       break;
     case '?':
       Serial.println("=================================================");
       Serial.println("Help");
-      _EEPROM.printStruct();
-      _EEPROM.printStructDO8();
+      _EEPROM.printStruct(BOARD_TYPE);
       Serial.println("Txx is 2 digit, Lxxx, Bxxx is 3 digit");
       Serial.println("*777:Restore factory default value.");
       Serial.println("@:Read parameter, !:Save parameter, ?:Help, ~:Exit Develop Modes");

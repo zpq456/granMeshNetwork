@@ -2,6 +2,8 @@
 #ifndef MasterWifi_h
 #define MasterWifi_h
 
+#define LED_BOARD_LEVEL 18
+
 
 #define BOARD_NAME "MasterWifi"
 

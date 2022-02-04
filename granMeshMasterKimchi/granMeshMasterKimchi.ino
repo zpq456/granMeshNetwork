@@ -39,12 +39,78 @@ void meshSendMessage(String tonode, String Msg);
 
 
 //********************** Data table ************************
+#define WARNING1 30
+#define WARNING2 30
+#define WARNING3 30
+#define WARNING4 30
+
 struct dataTable {
   float tempSensor[4];
-  int sensorWarning[4][8]; // 4 node * 8 rellay
+  int sensorWarning[8];
 } DataT;
 
 dataTable DataTtemp;
+
+void initDataTable() {
+  DataT.tempSensor[0] = 0;
+  DataT.tempSensor[1] = 0;
+  DataT.tempSensor[2] = 0;
+  DataT.tempSensor[3] = 0;
+  DataT.sensorWarning[0] = 0;
+  DataT.sensorWarning[1] = 0;
+  DataT.sensorWarning[2] = 0;
+  DataT.sensorWarning[3] = 0;
+  DataT.sensorWarning[4] = 0;
+  DataT.sensorWarning[5] = 0;
+  DataT.sensorWarning[6] = 0;
+  DataT.sensorWarning[7] = 0;
+}
+
+//온도값에 따라서 DO8 보드의 릴레이를 작동시킨다.
+void checkWarning() {
+  bool checkChange = false;
+  if (DataT.tempSensor[0] > WARNING1 && DataT.sensorWarning[0] == 0) {
+    DataT.sensorWarning[0] = 1;
+    checkChange = true;
+  } else if (DataT.tempSensor[0] <= WARNING1 && DataT.sensorWarning[0] == 1) {
+    DataT.sensorWarning[0] = 0;
+    checkChange = true;
+  }
+  if (DataT.tempSensor[1] > WARNING2 && DataT.sensorWarning[1] == 0) {
+    DataT.sensorWarning[1] = 1;
+    checkChange = true;
+  } else if (DataT.tempSensor[1] <= WARNING2 && DataT.sensorWarning[1] == 1) {
+    DataT.sensorWarning[1] = 0;
+    checkChange = true;
+  }
+  if (DataT.tempSensor[2] > WARNING3 && DataT.sensorWarning[2] == 0) {
+    DataT.sensorWarning[2] = 1;
+    checkChange = true;
+  } else if (DataT.tempSensor[2] <= WARNING3 && DataT.sensorWarning[2] == 1) {
+    DataT.sensorWarning[2] = 0;
+    checkChange = true;
+  }
+  if (DataT.tempSensor[3] > WARNING4 && DataT.sensorWarning[3] == 0) {
+    DataT.sensorWarning[3] = 1;
+    checkChange = true;
+  } else if (DataT.tempSensor[3] <= WARNING4 && DataT.sensorWarning[3] == 1) {
+    DataT.sensorWarning[3] = 0;
+    checkChange = true;
+  }
+
+  if (checkChange) {
+    meshSendMessage(NODE_DO_1, DO8JsonMsg(&DataT.sensorWarning[0]));
+  }
+}
+
+void printDataTable() {
+  Serial.println("");
+  Serial.println(DataT.tempSensor[0]);
+  Serial.println(DataT.tempSensor[1]);
+  Serial.println(DataT.tempSensor[2]);
+  Serial.println(DataT.tempSensor[3]);
+  Serial.println("");
+}
 
 //********************** comm **************************
 char serialBuf[21]; // serial로 들어오는 데이타 저장을 위한 임시버퍼.
@@ -71,7 +137,7 @@ void pinModeSetup(int boardType) {
   digitalWrite(P_PUMP, LOW);
 
   switch (boardType) {
-    case 0: // MasterDI4DO4
+    case 7: // MasterKimchi
       pinMode(TEMP_SENSOR, INPUT_PULLUP);      //  Temp Sensor
       break;
   }
@@ -98,6 +164,8 @@ void setup()
   dbStartTime = millis();
   dbEndTime = millis();
 
+  initDataTable();
+
   initMesh();
 
 }
@@ -105,19 +173,20 @@ void setup()
 void loop() {
 
   if (devMode) {  //setting data use Serial Mointor
+    developmentMode();
   }
   else {
+    readIO();
+    devModeMSG = 0; //Serial 설정 안내문구
   }
 
-  developmentMode();
-  readIO();
-  //  devModeMSG = 0; //Serial 설정 안내문구
   mesh.update();
 
   //Send Sensor Data Button LED Check
   if (!(digitalRead(DBSWITCH))) {
     digitalWrite(LED_BOARD_LEVEL, true);
   } else {
+    //    digitalWrite(P_PUMP, LOW);  // LED Off
     digitalWrite(LED_BOARD_LEVEL, false);
   }
 

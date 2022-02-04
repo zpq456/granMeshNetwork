@@ -1,6 +1,6 @@
 
-#ifndef MasterDI4DO4_h
-#define MasterDI4DO4_h
+#ifndef MasterKimchi_h
+#define MasterKimchi_h
 
 #define LED_BOARD_LEVEL 18
 
@@ -19,11 +19,8 @@
 #define NODE_DI_4 "NS004"
 
 #define NODE_DO_1 "No001"
-#define NODE_DO_2 "No002"
-#define NODE_DO_3 "No003"
-#define NODE_DO_4 "No004"
 
-#define BOARD_NAME "MasterDI4DO4"
+#define BOARD_NAME "MasterKimchi"
 
 
 /*

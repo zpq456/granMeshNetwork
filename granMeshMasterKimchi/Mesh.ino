@@ -77,7 +77,6 @@ void receivedCallback( uint32_t from, String &msg ) {
   int data_type;
   bool dataDifferenceFalg = false;
   int outputvalue = 0;
-  int donode_num;
 
   switch (board_type) {
     case 0: // sensor nodeLiveCheck ack msg
@@ -88,62 +87,57 @@ void receivedCallback( uint32_t from, String &msg ) {
         case 1: // temp sensor xx.xx'C
           dataString = data_object["Msg"];
           if (node_name.compareTo(NODE_DI_1) == 0) {
-            _EEPROM.setMasterDI4DO4inputValue(0, DataTtemp.tempSensor[0]);
+            DataT.tempSensor[0] = DataTtemp.tempSensor[0];
           } else if (node_name.compareTo(NODE_DI_2) == 0) {
-            _EEPROM.setMasterDI4DO4inputValue(1, DataTtemp.tempSensor[1]);
+            DataT.tempSensor[1] = DataTtemp.tempSensor[1];
           } else if (node_name.compareTo(NODE_DI_3) == 0) {
-            _EEPROM.setMasterDI4DO4inputValue(2, DataTtemp.tempSensor[2]);
+            DataT.tempSensor[2] = DataTtemp.tempSensor[2];
           } else if (node_name.compareTo(NODE_DI_4) == 0) {
-            _EEPROM.setMasterDI4DO4inputValue(3, DataTtemp.tempSensor[3]);
+            DataT.tempSensor[3] = DataTtemp.tempSensor[3];
           }
+          checkWarning();
           break;
         case 2: // Output Node Ack Msg
           dataString = data_object["Msg"];
 
-          if (node_name.compareTo(NODE_DO_1) == 0) {
-            donode_num = 0;
-          }
-
           outputvalue = data_object["DO_1"];
-          if (outputvalue != _EEPROM.getMasterDI4DO4relayValue(donode_num, 0)) {
+          if (outputvalue != DataT.sensorWarning[0]) {
             dataDifferenceFalg = true;
           }
           outputvalue = data_object["DO_2"];
-          if (outputvalue != _EEPROM.getMasterDI4DO4relayValue(donode_num, 1)) {
+          if (outputvalue != DataT.sensorWarning[1]) {
             dataDifferenceFalg = true;
           }
           outputvalue = data_object["DO_3"];
-          if (outputvalue != _EEPROM.getMasterDI4DO4relayValue(donode_num, 2)) {
+          if (outputvalue != DataT.sensorWarning[2]) {
             dataDifferenceFalg = true;
           }
           outputvalue = data_object["DO_4"];
-          if (outputvalue != _EEPROM.getMasterDI4DO4relayValue(donode_num, 3)) {
+          if (outputvalue != DataT.sensorWarning[3]) {
             dataDifferenceFalg = true;
           }
           outputvalue = data_object["DO_5"];
-          if (outputvalue != _EEPROM.getMasterDI4DO4relayValue(donode_num, 4)) {
+          if (outputvalue != DataT.sensorWarning[4]) {
             dataDifferenceFalg = true;
           }
           outputvalue = data_object["DO_6"];
-          if (outputvalue != _EEPROM.getMasterDI4DO4relayValue(donode_num, 5)) {
+          if (outputvalue != DataT.sensorWarning[5]) {
             dataDifferenceFalg = true;
           }
           outputvalue = data_object["DO_7"];
-          if (outputvalue != _EEPROM.getMasterDI4DO4relayValue(donode_num, 6)) {
+          if (outputvalue != DataT.sensorWarning[6]) {
             dataDifferenceFalg = true;
           }
           outputvalue = data_object["DO_8"];
-          if (outputvalue != _EEPROM.getMasterDI4DO4relayValue(donode_num, 7)) {
+          if (outputvalue != DataT.sensorWarning[7]) {
             dataDifferenceFalg = true;
           }
 
-          if (dataDifferenceFalg) {
-            meshSendMessage(node_name,
-                            DO8JsonMsg(_EEPROM.getMasterDI4DO4relayAddress(donode_num))
-                           );
+          if (dataDifferenceFalg && devMode == 0) {
+            meshSendMessage(NODE_DO_1, DO8JsonMsg(&DataT.sensorWarning[0]));
           }
           else {
-            meshSendMessage(node_name, DO8AckMsg());
+            meshSendMessage(NODE_DO_1, DO8AckMsg());
           }
           break;
       }
@@ -186,7 +180,7 @@ void receivedCallback( uint32_t from, String &msg ) {
 
 void initMesh() {
   //*********************** mesh network ***************************
-  //  mesh.setDebugMsgTypes(ERROR | DEBUG | CONNECTION);  // set before init() so that you can see startup messages
+//  mesh.setDebugMsgTypes(ERROR | DEBUG | CONNECTION);  // set before init() so that you can see startup messages
   mesh.setDebugMsgTypes(ERROR | DEBUG );  // set before init() so that you can see startup messages
 
   //get Data from eeprom

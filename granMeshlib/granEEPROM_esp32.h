@@ -54,9 +54,23 @@ void printStructDO8();
 //*******************************************
 
 
+//**************** MasterDI4DO4 변수 ***************
+struct MasterDI4DO4DATA{
+    float tempSensor[4];
+    int sensorWarning[4][8]; // 4 node * 8 rellay
+} MasterDI4DO4 ;
 
-void setDefaultValue();
-void printStruct();
+void setMasterDI4DO4relayValue(int node, int rellay, int data);
+int getMasterDI4DO4relayValue(int node, int rellay);
+int *getMasterDI4DO4relayAddress(int node);
+void setMasterDI4DO4inputValue(int num, float data);
+float getMasterDI4DO4inputValue(int num);
+void setDefaultValueMasterDI4DO4();
+void printStructMasterDI4DO4();
+//*******************************************
+
+void setDefaultValue(int boardType);
+void printStruct(int boardType);
 
 //************ EEPROM 관련 함수 *************
 void EEPROM_begin();

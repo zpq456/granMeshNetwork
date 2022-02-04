@@ -1,4 +1,3 @@
-
 void readIO()
 {
   //시간이 되면 작업 진행
@@ -7,10 +6,10 @@ void readIO()
 
     //********************** send order output ***********************
 
-//    //print DataTable
-//    Unit1.write(0x02);
-//    Unit1.write((uint8_t *) &DataT, sizeof DataT);
-    _EEPROM.printStructMasterDI4DO4();
+    //print DataTable
+    Unit1.write(0x02);
+    Unit1.write((uint8_t *) &DataT, sizeof DataT);
+    printDataTable();
   }
 }
 
@@ -27,8 +26,10 @@ void developmentMode() {
   if (Serial.available() != 0) {
     readSerial();
   }
-  
+  //insert or update sensor setting
   else if ((dbEndTime - dbStartTime) >= dbDelayTime &&
-           !(digitalRead(TACTBTN)) && (digitalRead(DBSWITCH))) {      
+           !(digitalRead(TACTBTN)) && (digitalRead(DBSWITCH))) {
+    //getSensorFromDB();
   }
+
 }

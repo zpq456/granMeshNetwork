@@ -7,22 +7,24 @@
 
 //******************** board Select ***********************
 
-#define BOARD_TYPE 6
+#define BOARD_TYPE 7
 
 #if BOARD_TYPE == 0                 // Master DI4 DO4
     #include "board/MasterDI4DO4.h"
-#elif BOARD_TYPE == 1               // DI8
-
+#elif BOARD_TYPE == 1              // Master Wifi
+    #include "board/MasterWifi.h"
 #elif BOARD_TYPE == 2               // DO8
     #include "board/DO8.h"
-#elif BOARD_TYPE == 3               // AI8
+#elif BOARD_TYPE == 3               // DI8
              
 #elif BOARD_TYPE == 4               // AO4
+             
+#elif BOARD_TYPE == 5               // AI8
             
-#elif BOARD_TYPE == 5               // AI Core Temp Sensor Board
+#elif BOARD_TYPE == 6               // AI Core Temp Sensor Board
     #include "board/AICT.h"   
-#elif BOARD_TYPE == 6               // Master Wifi
-    #include "board/MasterWifi.h"
+#elif BOARD_TYPE == 7               // Master Kinchi DI4 DO1
+    #include "board/MasterKimchi.h"
 #endif
 
 

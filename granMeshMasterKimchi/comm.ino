@@ -2,6 +2,7 @@ int temp = 0;
 
 void readSerial() {
   String stringTemp;
+  int dot1, dot2, stringTempLen;
   Serial.println("in Serial.");
 
   SerialGets(&serialBuf[0], 21);
@@ -58,13 +59,13 @@ void readSerial() {
 
       Serial.println("=================================================");
       Serial.println("PARAMETER Read.");
-      _EEPROM.printStruct(BOARD_TYPE); 
+      _EEPROM.printStruct(BOARD_TYPE);
       Serial.println("@:Read parameter, !:Save parameter, ?:Help, ~:Exit Develop Modes");
       break;
     case '?':
       Serial.println("=================================================");
       Serial.println("Help");
-      _EEPROM.printStruct(BOARD_TYPE); 
+      _EEPROM.printStruct(BOARD_TYPE);
       Serial.println("Txx is 2 digit, Lxxx, Bxxx is 3 digit");
       Serial.println("*777:Restore factory default value.");
       Serial.println("@:Read parameter, !:Save parameter, ?:Help, ~:Exit Develop Modes");
@@ -76,6 +77,19 @@ void readSerial() {
       Serial.println("---------------------------------------------------------");
       ESP.restart();
       break;
+
+    //DO controller
+    case 'O':
+      stringTemp = &serialBuf[1];
+      dot1 = stringTemp.indexOf(".");// 첫 번째 콤마 위치
+      dot2 = stringTemp.indexOf(".", dot1 + 1); // 두 번째 콤마 위치
+      stringTempLen = stringTemp.length(); // 문자열 길이
+
+      meshSendMessage(stringTemp.substring(0, dot1),
+                      DO8SoloJsonMsg(stringTemp.substring(dot1 + 1, dot2),
+                                     stringTemp.substring(dot2 + 1, stringTempLen))
+                     );
+      break;
     default :
       break;
   }
@@ -83,7 +97,6 @@ void readSerial() {
 
   Serial.flush();
 }
-
 
 // UART를 통해 들어오는 것을 배열 버퍼에 넣기 위한 함수.
 uint8_t SerialGets(char dest[], uint8_t length) {
@@ -107,6 +120,9 @@ uint8_t SerialGets(char dest[], uint8_t length) {
   } while (ch != 59);
 
   if (ch == 59) {
+    while(Serial.available() > 0){
+      Serial.read();
+    }
     return 1; // if received ;
   } else {
     return 0; // received other.

@@ -27,7 +27,7 @@ String obtain_readings_nodeLiveCheck_ackmsg () {
 
   //set data json
   JSONVar jsonDatas;
-  jsonDatas["data_type"] = DATA_TYPE; //1
+  jsonDatas["data_type"] = DATA_TYPE; //6
   jsonDatas["Msg"] = Msg;
 
   jsonReadings["Data"] = JSON.stringify(jsonDatas);

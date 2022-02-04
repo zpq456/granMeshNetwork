@@ -2,6 +2,9 @@ int temp = 0;
 
 void readSerial() {
   String stringTemp;
+  String node_name, rellay, OutputValue;
+  int donode_num;
+  int dot1, dot2, stringTempLen;
   Serial.println("in Serial.");
 
   SerialGets(&serialBuf[0], 21);
@@ -26,7 +29,7 @@ void readSerial() {
     case 'T': //Delay Time 설정
       stringTemp = &serialBuf[1];
       _EEPROM.setDelayTime(stringTemp.toInt());
-      Serial.print("Delay Time(T) : "); 
+      Serial.print("Delay Time(T) : ");
       Serial.println(_EEPROM.getDelayTime());
       break;
     case 'D': //Delta Time 설정
@@ -40,16 +43,18 @@ void readSerial() {
       temp += (serialBuf[2] - 48) * 10;
       temp += serialBuf[3] - 48;
       if (temp == 777) {
-        _EEPROM.setDefaultValue();
+        _EEPROM.setDefaultValue(BOARD_TYPE);
+        _EEPROM.setDefaultValueMasterDI4DO4();
         Serial.println("Factory default values are restored.");
-        _EEPROM.printStruct();
+        _EEPROM.printStruct(BOARD_TYPE);
+        _EEPROM.printStructMasterDI4DO4();
       }
       break;
     case '!':   //EEPROM Save
       _EEPROM.putEEPROM(BOARD_TYPE);
       //      _EEPROM.EEPROM_write_All();
       Serial.println("=================================================");
-      _EEPROM.printStruct();
+      _EEPROM.printStruct(BOARD_TYPE);
       Serial.println("PARAMETER Saved.");
       break;
     case '@':   //EEPROM Read
@@ -58,13 +63,13 @@ void readSerial() {
 
       Serial.println("=================================================");
       Serial.println("PARAMETER Read.");
-      _EEPROM.printStruct();
+      _EEPROM.printStruct(BOARD_TYPE);
       Serial.println("@:Read parameter, !:Save parameter, ?:Help, ~:Exit Develop Modes");
       break;
     case '?':
       Serial.println("=================================================");
       Serial.println("Help");
-      _EEPROM.printStruct();
+      _EEPROM.printStruct(BOARD_TYPE);
       Serial.println("Txx is 2 digit, Lxxx, Bxxx is 3 digit");
       Serial.println("*777:Restore factory default value.");
       Serial.println("@:Read parameter, !:Save parameter, ?:Help, ~:Exit Develop Modes");
@@ -75,6 +80,57 @@ void readSerial() {
       Serial.println("Develop Mode End...");
       Serial.println("---------------------------------------------------------");
       ESP.restart();
+      break;
+
+    //DO controller
+    case 'O':
+      stringTemp = &serialBuf[1];
+      dot1 = stringTemp.indexOf(".");// 첫 번째 콤마 위치
+      dot2 = stringTemp.indexOf(".", dot1 + 1); // 두 번째 콤마 위치
+      stringTempLen = stringTemp.length(); // 문자열 길이
+
+      node_name = stringTemp.substring(0, dot1);
+      rellay = stringTemp.substring(dot1 + 1, dot2);
+      OutputValue = stringTemp.substring(dot2 + 1, stringTempLen);
+
+      if (node_name.compareTo(NODE_DO_1) == 0) {
+        donode_num = 0;
+      } else if (node_name.compareTo(NODE_DO_2) == 0) {
+        donode_num = 1;
+      } else if (node_name.compareTo(NODE_DO_3) == 0) {
+        donode_num = 2;
+      } else if (node_name.compareTo(NODE_DO_4) == 0) {
+        donode_num = 3;
+      }
+
+      _EEPROM.setMasterDI4DO4relayValue(donode_num, rellay.toInt() - 1, OutputValue.toInt());
+
+      meshSendMessage(node_name,
+                      DO8SoloJsonMsg(rellay, OutputValue)
+                     );
+      break;
+    //Change Master Data Image
+    case 'C':
+      stringTemp = &serialBuf[1];
+      dot1 = stringTemp.indexOf(".");// 첫 번째 콤마 위치
+      dot2 = stringTemp.indexOf(".", dot1 + 1); // 두 번째 콤마 위치
+      stringTempLen = stringTemp.length(); // 문자열 길이
+
+      node_name = stringTemp.substring(0, dot1);
+      rellay = stringTemp.substring(dot1 + 1, dot2);
+      OutputValue = stringTemp.substring(dot2 + 1, stringTempLen);
+
+      if (node_name.compareTo(NODE_DO_1) == 0) {
+        donode_num = 0;
+      } else if (node_name.compareTo(NODE_DO_2) == 0) {
+        donode_num = 1;
+      } else if (node_name.compareTo(NODE_DO_3) == 0) {
+        donode_num = 2;
+      } else if (node_name.compareTo(NODE_DO_4) == 0) {
+        donode_num = 3;
+      }
+
+      _EEPROM.setMasterDI4DO4relayValue(donode_num, rellay.toInt() - 1, OutputValue.toInt());
       break;
     default :
       break;
@@ -106,6 +162,9 @@ uint8_t SerialGets(char dest[], uint8_t length) {
   } while (ch != 59);
 
   if (ch == 59) {
+    while (Serial.available() > 0) {
+      Serial.read();
+    }
     return 1; // if received ;
   } else {
     return 0; // received other.

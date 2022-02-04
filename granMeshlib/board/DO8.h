@@ -2,6 +2,8 @@
 #ifndef DO8_h
 #define DO8_h
 
+#define LED_BOARD_LEVEL 18
+
 #define DO_1 4
 #define DO_2 0
 #define DO_3 2

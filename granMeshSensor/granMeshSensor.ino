@@ -69,12 +69,15 @@ bool rebootFlag = false; // 리부팅 트리거
 void pinModeSetup(int boardType) {
   pinMode(TACTBTN, INPUT_PULLUP);      //  BOOT MODE SELECT BUTTON
   pinMode(DBSWITCH, INPUT_PULLUP);     //Send Sensor Data Button
+  pinMode(LED_BOARD_LEVEL, OUTPUT);
+  
+  //esp32 pin 0 LOW
+  pinMode(P_PUMP, OUTPUT);           
+  digitalWrite(P_PUMP, LOW);
 
   switch (boardType) {
-    case 5: // AICT
+    case 6: // AICT
       pinMode(TEMP_SENSOR, INPUT_PULLUP);      //  Temp Sensor
-      pinMode(P_PUMP, OUTPUT);             //Send Sensor Data Button LED
-      digitalWrite(P_PUMP, LOW);  // LED Off
       break;
   }
 }
@@ -131,11 +134,11 @@ void loop() {
 
   //Send Sensor Data Button LED Check
   if (!(digitalRead(DBSWITCH))) {
-    digitalWrite(P_PUMP, HIGH); // LED On
+    digitalWrite(LED_BOARD_LEVEL, true);
   } else {
-    digitalWrite(P_PUMP, LOW);  // LED Off
+    digitalWrite(LED_BOARD_LEVEL, false);
   }
-
+  
   //Develop Mode Start Check
   if (!(digitalRead(TACTBTN))) {
     devMode = 1;
